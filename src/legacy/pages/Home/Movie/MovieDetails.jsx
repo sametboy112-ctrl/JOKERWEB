@@ -4,6 +4,7 @@ import PropTypes from "prop-types";
 import { fetchMovieDetails, fetchRelatedMovies } from "../Fetcher";
 import { getIdFromDetailSlug, toDetailPath } from "../urlUtils";
 import { saveToContinueWatching } from "../../../utils/continueWatching";
+import { trackWatchRequest } from "../../../utils/analytics";
 import { FaRedo, FaStar, FaArrowLeft, FaInfoCircle, FaBookmark } from "react-icons/fa";
 import { BiCalendar, BiTime, BiGlobe } from "react-icons/bi";
 import DetailPageSkeleton from "../reused/DetailPageSkeleton";
@@ -83,6 +84,12 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [movieId]);
+
+  // Log a watch-request analytics event whenever a movie's details are opened.
+  useEffect(() => {
+    if (!movie?.id) return;
+    trackWatchRequest({ mediaType: 'movie', mediaId: movie.id, title: movie.title });
+  }, [movie?.id, movie?.title]);
 
   // Save to "Continue Watching" tracking
   useEffect(() => {
@@ -366,16 +373,7 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
         <div className="flex items-start gap-4 bg-blue-900/10 border border-blue-500/20 rounded-2xl p-4 md:p-5 mx-2 md:mx-0">
           <FaInfoCircle className="text-blue-400 text-xl shrink-0 mt-0.5" />
           <p className="text-blue-200/70 text-sm leading-relaxed">
-            For the best ad-free streaming experience, we highly recommend using {" "}
-            <a
-              href="https://ublockorigin.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 font-semibold underline underline-offset-2 hover:text-blue-300 transition-colors"
-            >
-              uBlock Origin
-            </a>
-            . Enjoy uninterrupted playback.
+            Pop-up and redirect ads are automatically blocked on this player for uninterrupted playback.
           </p>
         </div>
       </div>
