@@ -56,9 +56,6 @@ const VideoPlayer = ({ movieId }) => {
                         mozallowfullscreen="true"
                         title="Movie Stream"
                         referrerPolicy="origin"
-                        // No allow-popups / allow-top-navigation: blocks the pop-up and
-                        // redirect ads these free embeds inject, while playback still works.
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock"
                         className="absolute inset-0 w-full h-full border-0"
                         style={{ userSelect: 'none' }}
                     />

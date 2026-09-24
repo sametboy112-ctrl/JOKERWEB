@@ -57,9 +57,6 @@ const VideoPlayer = ({ tvId, season = 1, episode = 1 }) => {
                         webkitallowfullscreen="true"
                         mozallowfullscreen="true"
                         referrerPolicy="origin"
-                        // No allow-popups / allow-top-navigation: blocks the pop-up and
-                        // redirect ads these free embeds inject, while playback still works.
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock"
                     />
                 )}
             </div>
