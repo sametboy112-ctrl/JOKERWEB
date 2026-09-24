@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fetchSeriesDetails, fetchAllEpisodes, fetchRelatedSeries } from "../Fetcher";
 import { getIdFromDetailSlug, toDetailPath } from "../urlUtils";
 import { saveToContinueWatching } from "../../../utils/continueWatching";
+import { trackWatchRequest } from "../../../utils/analytics";
 import { FaRedo, FaStar, FaArrowLeft, FaTv, FaStepBackward, FaStepForward, FaInfoCircle, FaBookmark } from "react-icons/fa";
 import { BiCalendar, BiGlobe, BiTv, BiChevronLeft, BiChevronRight, BiSearch } from "react-icons/bi";
 import DetailPageSkeleton from "../reused/DetailPageSkeleton";
@@ -242,6 +243,12 @@ const TvDetails = ({ tvId: tvIdProp }) => {
     nextParams.set('episode', String(playingEpisode));
     setSearchParams(nextParams, { replace: true });
   }, [allSeasons.length, playingSeason, playingEpisode, location.search, setSearchParams, loading, tv, numericTvId]);
+
+  // Log a watch-request analytics event whenever a series' details are opened.
+  useEffect(() => {
+    if (!tv?.id) return;
+    trackWatchRequest({ mediaType: 'tv', mediaId: tv.id, title: tv.name });
+  }, [tv?.id, tv?.name]);
 
   // Save to "Continue Watching" tracking
   useEffect(() => {
@@ -655,16 +662,7 @@ const TvDetails = ({ tvId: tvIdProp }) => {
         <div className="flex items-start gap-4 bg-blue-900/10 border border-blue-500/20 rounded-2xl p-4 md:p-5">
           <FaInfoCircle className="text-blue-400 text-xl shrink-0 mt-0.5" />
           <p className="text-blue-200/70 text-sm leading-relaxed">
-            For the best ad-free streaming experience, we highly recommend using{" "}
-            <a
-              href="https://ublockorigin.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 font-semibold underline underline-offset-2 hover:text-blue-300 transition-colors"
-            >
-              uBlock Origin
-            </a>
-            . Enjoy uninterrupted playback.
+            Pop-up and redirect ads are automatically blocked on this player for uninterrupted playback.
           </p>
         </div>
       </div>

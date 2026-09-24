@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toDetailPath } from './urlUtils';
-import { FaPlay, FaInfoCircle, FaStar } from 'react-icons/fa';
+import { FaPlay, FaInfoCircle, FaStar, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 import { BiCalendar } from 'react-icons/bi';
 
 const API_KEY  = (import.meta.env.VITE_TMDB_API || "f66eb21a452b1501f2ac555e2cff7ffc");
 const BASE_URL = (import.meta.env.VITE_BASE_URL || "https://api.themoviedb.org/3");
 const BACKDROP = 'https://image.tmdb.org/t/p/w1280'; // Optimized down from 'original'
-const BACKDROP_THUMB = 'https://image.tmdb.org/t/p/w300';
-const INTERVAL = 7000;
+const INTERVAL = 8000;
+const TRAILER_DELAY = 1200; // brief pause on the poster before the trailer takes over
 
 /* TMDB genre ID → label */
 const GENRE_MAP = {
@@ -49,21 +49,69 @@ const useTrending = () => {
   return { items, loading };
 };
 
+/** Fetches and caches a YouTube trailer key per media item. */
+const useTrailerKey = (item) => {
+  const cacheRef = useRef(new Map());
+  const [trailerKey, setTrailerKey] = useState(null);
+
+  useEffect(() => {
+    if (!item) return;
+    const cached = cacheRef.current.get(item.id);
+    if (cached !== undefined) {
+      setTrailerKey(cached);
+      return;
+    }
+    let cancelled = false;
+    const mediaType = item.media_type === 'tv' ? 'tv' : 'movie';
+    fetch(`${BASE_URL}/${mediaType}/${item.id}/videos?api_key=${API_KEY}`)
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return;
+        const video = (data.results ?? []).find(v => v.site === 'YouTube' && v.type === 'Trailer')
+          ?? (data.results ?? []).find(v => v.site === 'YouTube' && v.type === 'Teaser');
+        const key = video?.key ?? null;
+        cacheRef.current.set(item.id, key);
+        setTrailerKey(key);
+      })
+      .catch(() => {
+        cacheRef.current.set(item.id, null);
+        if (!cancelled) setTrailerKey(null);
+      });
+    return () => { cancelled = true; };
+  }, [item?.id]);
+
+  return trailerKey;
+};
+
 export default function HeroBanner() {
   const { items, loading } = useTrending();
   const [active, setActive] = useState(0);
   const [fade,   setFade]   = useState(true);
   const [barKey, setBarKey] = useState(0);
+  const [playTrailer, setPlayTrailer] = useState(false);
+  const [muted, setMuted] = useState(true);
   const navigate = useNavigate();
+
+  const item = items[active];
+  const trailerKey = useTrailerKey(item);
 
   const goTo = useCallback((next) => {
     setFade(false);
+    setPlayTrailer(false);
     setTimeout(() => {
       setActive(typeof next === 'function' ? next : () => next);
       setFade(true);
       setBarKey(k => k + 1);
     }, 300);
   }, []);
+
+  // Give the poster a brief moment on screen, then fade into the trailer.
+  useEffect(() => {
+    setPlayTrailer(false);
+    if (!trailerKey) return;
+    const t = setTimeout(() => setPlayTrailer(true), TRAILER_DELAY);
+    return () => clearTimeout(t);
+  }, [trailerKey, active]);
 
   useEffect(() => {
     if (items.length < 2) return;
@@ -73,189 +121,169 @@ export default function HeroBanner() {
 
   if (loading) {
     return (
-      <div className="relative w-full h-[72vh] md:h-screen overflow-hidden bg-[#0a0c12]">
-        {/* Ambient backdrop shimmer */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0c12] via-[#121826] to-[#0a0c12] opacity-70 animate-pulse" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0c12] via-transparent to-black/35" />
-
-        {/* Skeleton content block */}
-        <div className="relative z-10 h-full flex flex-col justify-end md:justify-center px-6 md:px-14 pb-20 md:pb-16 max-w-2xl">
-          <div className="w-24 h-7 rounded-full bg-white/[0.08] mb-4 animate-pulse" />
-          <div className="space-y-3 mb-5">
-            <div className="h-10 md:h-12 w-[85%] rounded-lg bg-white/[0.09] animate-pulse" />
-            <div className="h-10 md:h-12 w-[65%] rounded-lg bg-white/[0.08] animate-pulse" />
+      <div className="w-full px-4 sm:px-6 md:px-10 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] rounded-[28px] overflow-hidden bg-white/[0.04] animate-pulse" />
+          <div className="mt-5 space-y-3 max-w-lg">
+            <div className="h-3 w-24 rounded-full bg-white/[0.06] animate-pulse" />
+            <div className="h-7 w-3/4 rounded-lg bg-white/[0.08] animate-pulse" />
+            <div className="h-4 w-1/2 rounded bg-white/[0.06] animate-pulse" />
           </div>
-          <div className="flex gap-2 mb-6">
-            <div className="h-4 w-20 rounded-full bg-white/[0.08] animate-pulse" />
-            <div className="h-4 w-16 rounded-full bg-white/[0.07] animate-pulse" />
-            <div className="h-4 w-24 rounded-full bg-white/[0.07] animate-pulse" />
-          </div>
-          <div className="space-y-2 mb-7 hidden sm:block">
-            <div className="h-3.5 w-full rounded bg-white/[0.06] animate-pulse" />
-            <div className="h-3.5 w-[92%] rounded bg-white/[0.06] animate-pulse" />
-            <div className="h-3.5 w-[78%] rounded bg-white/[0.06] animate-pulse" />
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-36 rounded-full bg-white/[0.12] animate-pulse" />
-            <div className="h-11 w-32 rounded-full bg-white/[0.09] animate-pulse" />
-          </div>
-        </div>
-
-        {/* Subtle loading label */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-semibold">Loading Highlights</p>
         </div>
       </div>
     );
   }
-  if (!items.length) return null;
+  if (!item) return null;
 
-  const item    = items[active];
   const isTV    = item.media_type === 'tv';
   const title   = item.title  || item.name;
   const year    = (item.release_date || item.first_air_date || '').slice(0, 4);
   const rating  = item.vote_average > 0 ? item.vote_average.toFixed(1) : null;
-  const votes   = item.vote_count > 999
-    ? `${(item.vote_count / 1000).toFixed(1)}k`
-    : item.vote_count;
   const genres  = (item.genre_ids ?? []).slice(0, 3).map(id => GENRE_MAP[id]).filter(Boolean);
-  const overview = (item.overview ?? '').slice(0, 220) + ((item.overview ?? '').length > 220 ? '…' : '');
+  const overview = (item.overview ?? '').slice(0, 200) + ((item.overview ?? '').length > 200 ? '…' : '');
 
   const handlePlay = () => navigate(toDetailPath(isTV ? 'tv' : 'movie', item.id, title));
+  const showingTrailer = playTrailer && !!trailerKey;
 
   return (
-    <div className="relative w-full h-[72vh] md:h-screen overflow-hidden bg-black select-none">
+    <div className="w-full px-4 sm:px-6 md:px-10 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-8 pb-2 select-none">
+      <div className="max-w-6xl mx-auto">
 
-      {/* ── Backdrop ─────────────────────────── */}
-      <div className={`absolute inset-0 transition-opacity duration-500 ${fade ? 'opacity-100' : 'opacity-0'}`}>
-        <img
-          src={`${BACKDROP}${item.backdrop_path}`}
-          alt={title}
-          loading="lazy"
-          className="w-full h-full object-cover object-center"
-        />
-        {/* Cinematic overlays */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0c12] via-transparent to-black/30" />
-        <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-black/60 to-transparent" />
-      </div>
+        {/* ── Media stage: shows the FULL picture, never cropped ── */}
+        <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] rounded-[28px] overflow-hidden bg-black shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-white/[0.08]">
 
-      {/* ── Content ──────────────────────────── */}
-      <div className={`relative z-10 h-full flex flex-col justify-end md:justify-center px-6 md:px-14 pb-20 md:pb-16 max-w-2xl transition-opacity duration-500 ${fade ? 'opacity-100' : 'opacity-0'}`}>
+          {/* Ambient blurred fill so letterboxed edges never show plain black */}
+          <div className={`absolute inset-0 transition-opacity duration-500 ${fade ? 'opacity-100' : 'opacity-0'}`}>
+            <img
+              src={`${BACKDROP}${item.backdrop_path}`}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="w-full h-full object-cover scale-125 blur-3xl opacity-70"
+            />
+          </div>
 
-        {/* Live badge + type label */}
-        <div className="flex items-center gap-3 mb-4">
-          <span className="inline-flex items-center gap-1.5 bg-red-600/20 border border-red-500/40 text-red-400 text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-            Trending
-          </span>
-          <span className="text-gray-400 text-[11px] font-semibold uppercase tracking-widest">
-            {isTV ? 'TV Series' : 'Movie'}
-          </span>
-        </div>
+          {/* Full, uncropped poster image */}
+          <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${fade && !showingTrailer ? 'opacity-100' : 'opacity-0'}`}>
+            <img
+              src={`${BACKDROP}${item.backdrop_path}`}
+              alt={title}
+              loading="lazy"
+              className="w-full h-full object-contain"
+            />
+          </div>
 
-        {/* Title */}
-        <h2 className="text-4xl md:text-5xl lg:text-[3.25rem] font-black text-white leading-[1.05] tracking-tight mb-3 drop-shadow-[0_2px_20px_rgba(0,0,0,0.8)]">
-          {title}
-        </h2>
-
-        {/* Meta: rating + year + genres */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5">
-          {rating && (
-            <span className="flex items-center gap-1.5 text-yellow-400 font-bold text-sm">
-              <FaStar className="text-yellow-400 text-xs" />
-              {rating}
-              <span className="text-gray-500 font-normal text-xs">({votes})</span>
-            </span>
+          {/* Trailer, once loaded — fills the frame naturally at 16:9 */}
+          {trailerKey && (
+            <div className={`absolute inset-0 transition-opacity duration-700 ${showingTrailer ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <iframe
+                key={trailerKey}
+                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&modestbranding=1&loop=1&playlist=${trailerKey}&playsinline=1&rel=0`}
+                title={`${title} — Trailer`}
+                allow="autoplay; encrypted-media"
+                className="w-full h-full scale-[1.32] pointer-events-none"
+              />
+            </div>
           )}
-          {year && (
-            <span className="flex items-center gap-1.5 text-gray-400 text-sm">
-              <BiCalendar className="text-gray-500 text-xs" />
-              {year}
+
+          {/* Subtle bottom fade for legibility of the badge/mute row */}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/55 to-transparent pointer-events-none" />
+
+          {/* Top row: type badge + trailer indicator */}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+            <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-xl border border-white/20 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full">
+              {isTV ? 'TV Series' : 'Movie'}
             </span>
-          )}
-          {genres.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {genres.map(g => (
-                <span key={g} className="text-[11px] font-semibold text-gray-300 bg-white/[0.09] border border-white/[0.12] px-2.5 py-0.5 rounded-full">
-                  {g}
+            {showingTrailer && (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-xl border border-white/20 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                  Trailer
                 </span>
+                <button
+                  onClick={() => setMuted(m => !m)}
+                  aria-label={muted ? 'Unmute trailer' : 'Mute trailer'}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 text-white active:scale-90 transition-transform"
+                >
+                  {muted ? <FaVolumeMute className="text-xs" /> : <FaVolumeUp className="text-xs" />}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Progress pills, bottom-center of the stage */}
+          {items.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+              {items.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { if (i !== active) goTo(i); }}
+                  aria-label={`Slide ${i + 1}`}
+                  className="relative overflow-hidden rounded-full transition-all duration-300"
+                  style={{ width: i === active ? 24 : 6, height: 6 }}
+                >
+                  <span className="absolute inset-0 rounded-full bg-white/25" />
+                  {i === active && (
+                    <span
+                      key={barKey}
+                      className="absolute inset-y-0 left-0 rounded-full bg-white"
+                      style={{ animation: `fillBar ${INTERVAL}ms linear forwards` }}
+                    />
+                  )}
+                </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Overview */}
-        {overview && (
-          <p className="text-gray-300/85 text-sm leading-relaxed mb-7 max-w-lg hidden sm:block">
-            {overview}
-          </p>
-        )}
+        {/* ── Info, below the stage — normal reading size, iOS-clean ── */}
+        <div className={`mt-5 md:mt-6 max-w-xl transition-opacity duration-500 ${fade ? 'opacity-100' : 'opacity-0'}`}>
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight text-balance mb-2">
+            {title}
+          </h2>
 
-        {/* CTA buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handlePlay}
-            className="flex items-center gap-2.5 bg-red-600 hover:bg-red-500 text-white font-bold px-7 py-3 rounded-full transition-all duration-200 hover:scale-105 shadow-lg shadow-red-700/40 text-sm"
-          >
-            <FaPlay className="text-xs" />
-            Play Now
-          </button>
-          <button
-            onClick={handlePlay}
-            className="flex items-center gap-2 bg-white/[0.1] hover:bg-white/[0.18] backdrop-blur border border-white/[0.15] text-white font-semibold px-6 py-3 rounded-full transition-all duration-200 text-sm"
-          >
-            <FaInfoCircle className="text-sm" />
-            <span className="hidden sm:inline">More Info</span>
-            <span className="sm:hidden">Details</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-3">
+            {rating && (
+              <span className="flex items-center gap-1 text-gray-300 text-[13px] font-medium">
+                <FaStar className="text-yellow-400 text-[11px]" />
+                {rating}
+              </span>
+            )}
+            {year && (
+              <span className="flex items-center gap-1 text-gray-400 text-[13px]">
+                <BiCalendar className="text-gray-500 text-[11px]" />
+                {year}
+              </span>
+            )}
+            {genres.length > 0 && (
+              <span className="text-gray-400 text-[13px]">{genres.join(' · ')}</span>
+            )}
+          </div>
+
+          {overview && (
+            <p className="text-gray-400 text-sm leading-relaxed mb-5 hidden sm:block">
+              {overview}
+            </p>
+          )}
+
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={handlePlay}
+              className="flex items-center gap-2 bg-white hover:bg-white/90 text-black font-semibold px-5 py-2.5 rounded-full transition-all duration-200 active:scale-95 text-sm"
+            >
+              <FaPlay className="text-[11px]" />
+              Play
+            </button>
+            <button
+              onClick={handlePlay}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/[0.16] backdrop-blur-xl border border-white/15 text-white font-medium px-5 py-2.5 rounded-full transition-all duration-200 active:scale-95 text-sm"
+            >
+              <FaInfoCircle className="text-xs" />
+              Details
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* ── Progress indicator pills ─────────── */}
-      {items.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-          {items.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => { if (i !== active) goTo(i); }}
-              aria-label={`Slide ${i + 1}`}
-              className="relative overflow-hidden rounded-full transition-all duration-300"
-              style={{ width: i === active ? 28 : 8, height: 8 }}
-            >
-              <span className="absolute inset-0 rounded-full bg-gray-600/50" />
-              {i === active ? (
-                <span
-                  key={barKey}
-                  className="absolute inset-y-0 left-0 rounded-full bg-red-500"
-                  style={{ animation: `fillBar ${INTERVAL}ms linear forwards` }}
-                />
-              ) : (
-                <span className="absolute inset-0 rounded-full bg-gray-500/50 hover:bg-gray-400/60 transition-colors" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Thumbnail strip (desktop only) ───── */}
-      {items.length > 1 && (
-        <div className="absolute bottom-6 right-6 z-20 hidden lg:flex gap-2">
-          {items.map((it, i) => (
-            <button
-              key={it.id}
-              onClick={() => { if (i !== active) goTo(i); }}
-              className={`relative w-[80px] h-[50px] rounded-lg overflow-hidden ring-1 transition-all duration-200 ${
-                i === active
-                  ? 'ring-red-500 scale-105 opacity-100'
-                  : 'ring-white/10 opacity-45 hover:opacity-75'
-              }`}
-            >
-              <img src={`${BACKDROP_THUMB}${it.backdrop_path}`} loading="lazy" alt="" className="w-full h-full object-cover" />
-            </button>
-          ))}
-        </div>
-      )}
 
       <style>{`@keyframes fillBar { from { width:0% } to { width:100% } }`}</style>
     </div>

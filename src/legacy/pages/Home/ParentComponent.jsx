@@ -8,6 +8,7 @@ import { buildBrowsePath, getCategoryBySlug } from './urlFilters';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebase";
 import AuthModal from "../../components/AuthModal";
+import { trackVisit } from "../../utils/analytics";
 
 function ParentComponent() {
   const location = useLocation();
@@ -30,6 +31,11 @@ function ParentComponent() {
     window.addEventListener('openAuthModal', handleOpenAuthModal);
     return () => window.removeEventListener('openAuthModal', handleOpenAuthModal);
   }, []);
+
+  // Log a visitor analytics event on every page change.
+  useEffect(() => {
+    trackVisit(location.pathname);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
@@ -170,6 +176,12 @@ function ParentComponent() {
                 </span>
               </div>
               <a href="//www.dmca.com/Protection/Status.aspx?ID=204cd8cc-b62c-4f4a-aa8b-939824095655" title="DMCA.com Protection Status" className="dmca-badge"> <img src ="https://images.dmca.com/Badges/dmca_protected_sml_120m.png?ID=204cd8cc-b62c-4f4a-aa8b-939824095655"  alt="DMCA.com Protection Status" /></a>  <script src="https://images.dmca.com/Badges/DMCABadgeHelper.min.js"> </script>
+              <button
+                onClick={() => navigate('/analytics')}
+                className="text-gray-600 hover:text-gray-300 underline underline-offset-2 transition-colors"
+              >
+                Analytics
+              </button>
             </div>
           </div>
         </footer>}
