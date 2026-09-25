@@ -2,51 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaGoogle, FaEnvelope, FaLock, FaUser, FaSpinner, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
 import { BiMoviePlay } from 'react-icons/bi';
-import { auth, googleProvider, db } from '../firebase';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signInWithPopup,
-  fetchSignInMethodsForEmail,
-  linkWithCredential,
-  EmailAuthProvider,
-  sendPasswordResetEmail,
-  updateProfile,
-  GoogleAuthProvider,
-} from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { supabase } from '../supabase';
 
-const FIREBASE_ERRORS = {
-  'auth/invalid-email':               'That email address doesn\'t look right.',
-  'auth/user-not-found':              'No account found with that email.',
-  'auth/wrong-password':              'Incorrect password. Please try again.',
-  'auth/invalid-credential':          'Email or password is incorrect.',
-  'auth/email-already-in-use':        'An account with this email already exists.',
-  'auth/weak-password':               'Password must be at least 6 characters.',
-  'auth/too-many-requests':           'Too many attempts. Please wait a moment and try again.',
-  'auth/network-request-failed':      'Network error. Please check your connection.',
-  'auth/popup-closed-by-user':        'Sign-in popup was closed. Please try again.',
-  'auth/cancelled-popup-request':     'Another sign-in popup is already open.',
-  'auth/popup-blocked':               'Popup was blocked by your browser. Please allow popups and try again.',
-  'auth/user-disabled':               'This account has been disabled. Contact support.',
-};
-
-const getFirebaseError = (err) => {
-  const code = err?.code || '';
-  return FIREBASE_ERRORS[code] || 'Something went wrong. Please try again.';
-};
-
-// Upsert user profile in Firestore (merge so existing data is not overwritten)
-const saveUserToFirestore = async (user) => {
-  const ref = doc(db, 'users', user.uid);
-  await setDoc(ref, {
-    uid: user.uid,
-    displayName: user.displayName || null,
-    email: user.email,
-    photoURL: user.photoURL || null,
-    emailVerified: user.emailVerified || false,
-    lastLoginAt: serverTimestamp(),
-  }, { merge: true });
+const getAuthError = (err) => {
+  if (err?.message?.toLowerCase().includes('invalid login credentials')) return 'Email or password is incorrect.';
+  if (err?.message?.toLowerCase().includes('already registered')) return 'An account with this email already exists.';
+  if (err?.message?.toLowerCase().includes('password')) return 'Password must be at least 6 characters.';
+  return err?.message || 'Something went wrong. Please try again.';
 };
 
 export default function AuthModal({ isOpen, onClose }) {
@@ -80,10 +42,13 @@ export default function AuthModal({ isOpen, onClose }) {
     setLoading(true);
     setError('');
     try {
-      await sendPasswordResetEmail(auth, resetEmail.trim());
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) throw resetError;
       setResetSent(true);
     } catch (err) {
-      setError(getFirebaseError(err));
+      setError(getAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -96,79 +61,36 @@ export default function AuthModal({ isOpen, onClose }) {
 
     try {
       if (isLogin) {
-        // Sign in with email/password
-        const result = await signInWithEmailAndPassword(auth, email.trim(), password);
-
-        await result.user.reload();
-        if (!result.user.emailVerified) {
-          await auth.signOut();
-          setError('Please verify your email address before logging in. Check your inbox or spam folder.');
-          return; // Stop early
-        }
-
-        // If there is a pending Google credential from a collision, link it now
-        if (pendingGoogleCred) {
-          await linkWithCredential(result.user, pendingGoogleCred);
-          setPendingGoogleCred(null);
-          // Refresh user to get updated profile after link
-          saveUserToFirestore({ ...result.user, displayName: result.user.displayName }).catch(console.error);
-        } else {
-          // Update Firestore on standard login to reflect verified status and last login
-          saveUserToFirestore(result.user).catch(console.error);
-        }
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (signInError) throw signInError;
       } else {
-        // Register new user
-        const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        await updateProfile(userCredential.user, { displayName: name.trim() });
-
-        // Send verification email BEFORE writing to Firestore.
-        // The Firestore document is intentionally NOT created here — it will be
-        // written by saveUserToFirestore() on first successful verified login.
-        // This prevents unverified "ghost" rows from cluttering the database.
-        const { sendEmailVerification } = await import('firebase/auth');
-        await sendEmailVerification(userCredential.user);
-
-        // Sign out immediately so the user cannot access protected routes
-        // before they have verified their email address.
-        await auth.signOut();
-
-        setVerificationSent(true);
-        return; // Stop early so we show the success screen
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: { displayName: name.trim(), name: name.trim() },
+            emailRedirectTo: import.meta.env.VITE_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (signUpError) throw signUpError;
+        if (!data.session) {
+          setVerificationSent(true);
+          return;
+        }
       }
       onClose();
     } catch (err) {
-      setError(getFirebaseError(err));
+      setError(getAuthError(err));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      // Save/update user profile in Firestore
-      saveUserToFirestore(result.user).catch(console.error);
-      onClose();
-    } catch (err) {
-      if (err?.code === 'auth/account-exists-with-different-credential') {
-        const credential = GoogleAuthProvider.credentialFromError(err);
-        const collisionEmail = err?.customData?.email;
-        if (credential && collisionEmail) {
-          setPendingGoogleCred(credential);
-          setEmail(collisionEmail);
-          setIsLogin(true);
-          setError('This email already has an account. Enter its password to sign in and connect Google.');
-        } else {
-          setError('This email already uses another sign-in method. Sign in with that method first.');
-        }
-      } else {
-        setError(getFirebaseError(err));
-      }
-    } finally {
-      setLoading(false);
-    }
+    setError('Google sign-in is not enabled. Please use email and password.');
   };
 
   return (
