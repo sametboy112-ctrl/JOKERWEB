@@ -24,7 +24,7 @@ const getCachedUser = () => {
   try { return JSON.parse(localStorage.getItem('joker movies_user')) ?? null; } catch { return null; }
 };
 
-function Sidebar({ activePage, onNavigate, selectedGenreId, onGenreSelect, onOpenAuthModal }) {
+function Sidebar({ activePage, onNavigate, selectedGenreId, onGenreSelect, onOpenAuthModal, onOpenProfile }) {
   const [user, setUser] = useState(getCachedUser);
 
   useEffect(() => {
@@ -165,18 +165,18 @@ function Sidebar({ activePage, onNavigate, selectedGenreId, onGenreSelect, onOpe
       <div className="mt-auto pt-4 pb-6 px-[10px] shrink-0 border-t border-white/5 relative z-10 bg-gray-900/95">
         {user ? (
           <button
-            onClick={handleLogout}
-            title="Log Out"
+            onClick={onOpenProfile}
+            title="Profile"
             className="
               relative flex items-center gap-4 px-4 py-3.5 rounded-2xl
               w-full whitespace-nowrap
               border-2 border-transparent text-gray-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-colors duration-200 focus:outline-none group/user
             "
           >
-            <FaSignOutAlt className="text-[24px] shrink-0" />
+            <FaUserCircle className="text-[24px] shrink-0" />
             <div className="flex flex-col text-left opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-75">
-              <span className="text-white line-clamp-1 text-[13px] font-bold">{user.displayName || user.email?.split('@')[0]}</span>
-              <span className="text-red-400 text-[10px] font-bold uppercase tracking-wider">Log Out</span>
+              <span className="text-white line-clamp-1 text-[13px] font-bold">{user.displayName || user.user_metadata?.displayName || user.email?.split('@')[0]}</span>
+              <span className="text-red-400 text-[10px] font-bold uppercase tracking-wider">Profile</span>
             </div>
           </button>
         ) : (
@@ -205,7 +205,8 @@ Sidebar.propTypes = {
   onNavigate: PropTypes.func.isRequired,
   selectedGenreId: PropTypes.number,
   onGenreSelect: PropTypes.func,
-  onOpenAuthModal: PropTypes.func
+  onOpenAuthModal: PropTypes.func,
+  onOpenProfile: PropTypes.func
 };
 
 export default React.memo(Sidebar);

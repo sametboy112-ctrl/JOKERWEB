@@ -7,6 +7,8 @@ import Sidebar from './Sidebar';
 import { buildBrowsePath, getCategoryBySlug } from './urlFilters';
 import { supabase, subscribeToAuth } from "../../supabase";
 import AuthModal from "../../components/AuthModal";
+import ProfileModal from "../../components/ProfileModal";
+import { useWatchlist } from '../../context/WatchlistContext';
 import { trackVisit } from "../../utils/analytics";
 
 function ParentComponent() {
@@ -17,6 +19,8 @@ function ParentComponent() {
   const [user, setUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { watchlistItems } = useWatchlist();
 
   useEffect(() => {
     return subscribeToAuth(setUser);
@@ -135,6 +139,7 @@ function ParentComponent() {
         selectedGenreId={selectedGenreId}
         onGenreSelect={handleGenreSelect}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
 
       {scrollPosition > 300 && (
@@ -235,7 +240,7 @@ function ParentComponent() {
               {/* Mobile Profile/Auth Button */}
               {user ? (
                 <motion.button
-                  onClick={handleLogout}
+                  onClick={() => setIsProfileOpen(true)}
                   whileTap={{ scale: 0.84 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 20 }}
                   className="relative flex flex-col items-center justify-center gap-0.5 py-2 rounded-[20px] flex-1 min-w-0 text-red-500/80 focus:outline-none"
@@ -259,8 +264,14 @@ function ParentComponent() {
         )}
       </AnimatePresence>
 
-      {/* Auth Modal Form */}
+      {/* Auth and profile dialogs */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+        watchedCount={watchlistItems.length}
+      />
     </div>
   );
 }
