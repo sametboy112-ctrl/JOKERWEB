@@ -243,10 +243,11 @@ function ParentComponent() {
                   onClick={() => setIsProfileOpen(true)}
                   whileTap={{ scale: 0.84 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-                  className="relative flex flex-col items-center justify-center gap-0.5 py-2 rounded-[20px] flex-1 min-w-0 text-red-500/80 focus:outline-none"
+                  aria-label="Open profile"
+                  className="relative flex flex-col items-center justify-center gap-0.5 py-2 rounded-[20px] flex-1 min-w-0 text-gray-400 hover:text-red-400 focus:outline-none"
                 >
-                  <FaSignOutAlt className="text-[20px]" />
-                  <span className="text-[9px] font-bold uppercase tracking-wider">Log Out</span>
+                  <FaUserCircle className="text-[22px]" />
+                  <span className="text-[9px] font-semibold">Profile</span>
                 </motion.button>
               ) : (
                 <motion.button
