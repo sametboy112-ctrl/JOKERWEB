@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { supabase } from '../../supabase';
 import { motion } from 'framer-motion';
 import {
   BiBarChartAlt2, BiGroup, BiTrendingUp, BiMoviePlay,
@@ -19,32 +19,31 @@ const useAnalyticsCollection = (name) => {
   const [errored, setErrored] = useState(false);
 
   useEffect(() => {
-    let settled = false;
-    const q = query(collection(db, name), orderBy('clientTs', 'desc'), limit(HISTORY_LIMIT));
-    const unsub = onSnapshot(
-      q,
-      (snapshot) => {
-        settled = true;
-        setDocs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      },
-      () => {
-        // Missing/denied Firestore rules for this collection — fail quietly.
-        settled = true;
+    let active = true;
+    const load = async () => {
+      const { data, error } = await supabase
+        .from(name)
+        .select('*')
+        .order('client_ts', { ascending: false })
+        .limit(HISTORY_LIMIT);
+
+      if (!active) return;
+      if (error) {
         setErrored(true);
-        setLoading(false);
+      } else {
+        setDocs((data || []).map((row) => ({
+          id: row.id,
+          ...row,
+          sessionId: row.session_id,
+          clientTs: row.client_ts,
+          mediaType: row.media_type,
+          mediaId: row.media_id,
+        })));
       }
-    );
-    // Some misconfigurations (e.g. no Firestore database provisioned) neither
-    // resolve nor reject the listener — stop the spinner after a timeout instead
-    // of hanging forever.
-    const timeout = setTimeout(() => {
-      if (!settled) {
-        setErrored(true);
-        setLoading(false);
-      }
-    }, 6000);
-    return () => { unsub(); clearTimeout(timeout); };
+      setLoading(false);
+    };
+    load();
+    return () => { active = false; };
   }, [name]);
 
   return { docs, loading, errored };
@@ -157,10 +156,8 @@ export default function AnalyticsPage() {
 
         {denied && (
           <div className="mb-8 bg-yellow-500/10 border border-yellow-500/25 text-yellow-300 text-sm rounded-2xl p-4">
-            Couldn&apos;t load analytics from Firestore. This usually means either the project&apos;s Firestore
-            database hasn&apos;t been created yet, or its security rules block reads on{' '}
-            <code className="text-yellow-200">analytics_visits</code> / <code className="text-yellow-200">analytics_requests</code>.
-            Check the Firebase console for this project to fix it.
+            Couldn&apos;t load analytics from Supabase. Check that your account is signed in and the analytics
+            tables are available to authenticated users.
           </div>
         )}
 

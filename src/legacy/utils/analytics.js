@@ -1,5 +1,4 @@
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 
 const SESSION_KEY = 'wf_analytics_session';
 
@@ -17,8 +16,13 @@ export const getSessionId = () => {
   }
 };
 
-const getCachedUser = () => {
-  try { return JSON.parse(localStorage.getItem('joker movies_user')) ?? null; } catch { return null; }
+const getCurrentUserId = async () => {
+  try {
+    const { data } = await supabase.auth.getUser();
+    return data.user?.id ?? null;
+  } catch {
+    return null;
+  }
 };
 
 let lastTrackedPath = null;
@@ -30,15 +34,14 @@ export const trackVisit = async (path) => {
   lastTrackedPath = path;
 
   try {
-    const user = getCachedUser();
-    await addDoc(collection(db, 'analytics_visits'), {
+    const uid = await getCurrentUserId();
+    await supabase.from('analytics_visits').insert({
       path,
       referrer: document.referrer || null,
-      userAgent: navigator.userAgent,
-      sessionId: getSessionId(),
-      uid: user?.uid ?? null,
-      ts: serverTimestamp(),
-      clientTs: Date.now(),
+      user_agent: navigator.userAgent,
+      session_id: getSessionId(),
+      uid,
+      client_ts: Date.now(),
     });
   } catch {
     /* analytics must never break the app */
@@ -50,15 +53,14 @@ export const trackWatchRequest = async ({ mediaType, mediaId, title }) => {
   if (typeof window === 'undefined' || !mediaId || !title) return;
 
   try {
-    const user = getCachedUser();
-    await addDoc(collection(db, 'analytics_requests'), {
-      mediaType,
-      mediaId: String(mediaId),
+    const uid = await getCurrentUserId();
+    await supabase.from('analytics_requests').insert({
+      media_type: mediaType || null,
+      media_id: String(mediaId),
       title,
-      sessionId: getSessionId(),
-      uid: user?.uid ?? null,
-      ts: serverTimestamp(),
-      clientTs: Date.now(),
+      session_id: getSessionId(),
+      uid,
+      client_ts: Date.now(),
     });
   } catch {
     /* analytics must never break the app */
