@@ -5,8 +5,7 @@ import { BiUpArrowAlt, BiHomeAlt, BiMoviePlay, BiTv, BiSearch, BiBookmark } from
 import { FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import Sidebar from './Sidebar';
 import { buildBrowsePath, getCategoryBySlug } from './urlFilters';
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../../firebase";
+import { supabase, subscribeToAuth } from "../../supabase";
 import AuthModal from "../../components/AuthModal";
 import { trackVisit } from "../../utils/analytics";
 
@@ -20,10 +19,7 @@ function ParentComponent() {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
+    return subscribeToAuth(setUser);
   }, []);
 
   useEffect(() => {
@@ -39,7 +35,7 @@ function ParentComponent() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error('Logout error:', error);
     }

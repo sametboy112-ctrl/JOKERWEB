@@ -9,8 +9,7 @@ import {
 } from 'react-icons/bi';
 import { FaPlay, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
 import { GENRES, SPECIAL_CATEGORIES } from './tmdb';
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../../firebase";
+import { supabase, subscribeToAuth } from "../../supabase";
 
 const NAV_ITEMS = [
   { id: 'search', icon: BiSearch, action: 'navigate', label: 'Search' },
@@ -29,21 +28,16 @@ function Sidebar({ activePage, onNavigate, selectedGenreId, onGenreSelect, onOpe
   const [user, setUser] = useState(getCachedUser);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        const cached = { uid: currentUser.uid, displayName: currentUser.displayName, email: currentUser.email };
-        localStorage.setItem('joker movies_user', JSON.stringify(cached));
-      } else {
-        localStorage.removeItem('joker movies_user');
-      }
+    return subscribeToAuth((currentUser) => {
+      if (currentUser) localStorage.setItem('joker movies_user', JSON.stringify(currentUser));
+      else localStorage.removeItem('joker movies_user');
       setUser(currentUser);
     });
-    return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error('Logout error:', error);
     }
