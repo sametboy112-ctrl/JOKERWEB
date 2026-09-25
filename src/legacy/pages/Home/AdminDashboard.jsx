@@ -37,8 +37,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main>
-      <div className="border-b border-white/10 bg-[#0a0c12] px-4 py-3 text-white md:pl-[108px]">
+    <main className="min-h-screen bg-[#0f1014] text-white">
+      <div className="border-b border-white/10 bg-[#17181c] px-4 py-4 md:pl-[108px]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <FaUsers className="text-red-400" />
@@ -48,7 +48,23 @@ export default function AdminDashboard() {
           <span className="text-xs text-gray-500">{user.email}</span>
         </div>
       </div>
-      <AnalyticsPage />
+      <div className="mx-auto grid max-w-6xl gap-4 px-4 py-5 md:pl-[108px] lg:grid-cols-[1.4fr_1fr]">
+        <section className="rounded-[1.25rem] border border-white/10 bg-[#1b1c20] p-4">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">Overview</p>
+          <h1 className="mt-1 text-xl font-bold">Visitor activity</h1>
+          <p className="mt-1 text-sm text-gray-400">Review requests, watched movies, premium approvals, and verified members.</p>
+          <div className="mt-5"><AnalyticsPage /></div>
+        </section>
+        <aside className="space-y-3">
+          {['Premium requests', 'Watched movies', 'User accounts', 'Verified users'].map((label, index) => (
+            <div key={label} className="flex items-center justify-between rounded-[1.15rem] border border-white/10 bg-[#1b1c20] px-4 py-4">
+              <div><p className="text-sm font-semibold text-gray-200">{label}</p><p className="mt-1 text-xs text-gray-500">Manage from admin tools</p></div>
+              <span className={`text-xl font-black ${index === 0 ? 'text-[#e50914]' : 'text-white'}`}>{index === 0 ? '0' : '—'}</span>
+            </div>
+          ))}
+          <div className="rounded-[1.15rem] border border-red-500/20 bg-red-500/10 p-4"><p className="text-sm font-semibold">Admin controls</p><p className="mt-1 text-xs leading-5 text-gray-400">Only the authorized admin email can access this dashboard. Never store payment PINs or passwords.</p></div>
+        </aside>
+      </div>
     </main>
   );
 }
