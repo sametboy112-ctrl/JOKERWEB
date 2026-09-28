@@ -48,9 +48,8 @@ function ProfileModal({ isOpen, onClose, user, watchedCount = 0 }) {
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
-            <motion.section role="dialog" aria-modal="true" aria-labelledby="profile-title" className="pointer-events-auto w-full max-w-md max-h-[92vh] overflow-y-auto rounded-[1.35rem] border border-white/10 bg-[#17181c] shadow-[0_24px_80px_rgba(0,0,0,0.65)]" initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: 0.98 }}>
+          <div className="fixed inset-0 z-[60] bg-[#0f1014] pointer-events-none">
+            <motion.section role="dialog" aria-modal="true" aria-labelledby="profile-title" className="pointer-events-auto h-full w-full overflow-y-auto bg-[#0f1014] text-white" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="flex items-center justify-between border-b border-white/10 bg-[#1f2024] px-4 py-3">
                 <div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e50914] shadow-lg shadow-red-950/50"><FaUserCircle className="text-2xl text-white" /></div><div><h2 id="profile-title" className="text-lg font-bold tracking-tight text-white">Profile</h2><p className="text-[11px] text-gray-500">JOKER MOVIES</p></div></div>
                 <button type="button" onClick={onClose} aria-label="Close profile" className="rounded-full bg-white/10 p-2.5 text-gray-300 transition hover:bg-white/20 hover:text-white"><FaTimes /></button>
