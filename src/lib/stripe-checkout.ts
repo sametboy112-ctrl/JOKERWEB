@@ -7,12 +7,11 @@ const prices = {
 } as const;
 
 export const createPremiumCheckout = createServerFn({ method: "POST" })
-  .validator((input: { plan: keyof typeof prices; phone?: string }) => {
-    const phone = input?.phone?.replace(/\s/g, "") || "";
-    if (!input || !(input.plan in prices) || (phone && !/^\+?[0-9]{9,15}$/.test(phone))) {
-      throw new Error("Choose a plan and enter a valid phone number if provided.");
+  .validator((input: { plan: keyof typeof prices }) => {
+    if (!input || !(input.plan in prices)) {
+      throw new Error("Choose a valid premium plan.");
     }
-    return { plan: input.plan, phone };
+    return { plan: input.plan };
   })
   .handler(async ({ data }) => {
     const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -24,7 +23,6 @@ export const createPremiumCheckout = createServerFn({ method: "POST" })
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_creation: "always",
-      phone_number_collection: { enabled: true },
       line_items: [
         {
           quantity: 1,
@@ -35,7 +33,7 @@ export const createPremiumCheckout = createServerFn({ method: "POST" })
           },
         },
       ],
-      metadata: { plan: data.plan, phone: data.phone, membership: "premium" },
+      metadata: { plan: data.plan, membership: "premium" },
       success_url: `${origin}/?premium=success`,
       cancel_url: `${origin}/?premium=cancelled`,
     });
