@@ -7,11 +7,12 @@ const prices = {
 } as const;
 
 export const createPremiumCheckout = createServerFn({ method: 'POST' })
-  .validator((input: { plan: keyof typeof prices; phone: string }) => {
-    if (!input || !(input.plan in prices) || !/^\+?[0-9]{9,15}$/.test(input.phone.replace(/\s/g, ''))) {
-      throw new Error('Enter a valid phone number and choose a plan.');
+  .validator((input: { plan: keyof typeof prices; phone?: string }) => {
+    const phone = input?.phone?.replace(/\s/g, '') || '';
+    if (!input || !(input.plan in prices) || (phone && !/^\+?[0-9]{9,15}$/.test(phone))) {
+      throw new Error('Choose a plan and enter a valid phone number if provided.');
     }
-    return { plan: input.plan, phone: input.phone.replace(/\s/g, '') };
+    return { plan: input.plan, phone };
   })
   .handler(async ({ data }) => {
     const secretKey = process.env.STRIPE_SECRET_KEY;
