@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * Compatibility layer that maps the legacy app's routing API onto
  * TanStack Router. Aliased as "react-router-dom" in vite.config.ts.
@@ -39,9 +41,7 @@ export function useNavigate() {
         return;
       }
       const target =
-        typeof to === "string"
-          ? to
-          : `${to?.pathname ?? ""}${to?.search ?? ""}${to?.hash ?? ""}`;
+        typeof to === "string" ? to : `${to?.pathname ?? ""}${to?.search ?? ""}${to?.hash ?? ""}`;
       navigate({ to: target, replace: !!options.replace, state: options.state } as any);
     },
     [navigate, router],

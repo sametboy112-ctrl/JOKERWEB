@@ -14,13 +14,15 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+    envPrefix: ["VITE_", "NEXT_PUBLIC_"],
     resolve: {
       alias: {
         // Legacy pages use the react-router API; it is served by a thin
         // TanStack Router compatibility layer.
         "react-router-dom": fileURLToPath(new URL("./src/lib/router-compat.tsx", import.meta.url)),
-        "react-helmet-async": fileURLToPath(new URL("./src/lib/helmet-compat.tsx", import.meta.url)),
+        "react-helmet-async": fileURLToPath(
+          new URL("./src/lib/helmet-compat.tsx", import.meta.url),
+        ),
       },
     },
   },

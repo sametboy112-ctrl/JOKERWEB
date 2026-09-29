@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * Minimal react-helmet-async replacement that writes head tags directly to the
  * document. Aliased as "react-helmet-async" in vite.config.ts.
