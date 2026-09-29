@@ -18,26 +18,31 @@ import { useWatchlist } from "../../../context/WatchlistContext";
 const MemoizedVideoPlayer = memo(VideoPlayer);
 
 const BACKDROP = "https://image.tmdb.org/t/p/original";
-const POSTER   = "https://image.tmdb.org/t/p/w500";
+const POSTER = "https://image.tmdb.org/t/p/w500";
 
 const MovieDetails = ({ movieId: movieIdProp }) => {
   const { slug } = useParams();
   const location = useLocation();
   const movieId = movieIdProp ?? getIdFromDetailSlug(slug);
   const navigate = useNavigate();
-  const [movie,        setMovie]        = useState(null);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState(null);
-  const [retrying,     setRetrying]     = useState(false);
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retrying, setRetrying] = useState(false);
   const [showOverview, setShowOverview] = useState(false);
-  const [related,      setRelated]      = useState([]);
+  const [related, setRelated] = useState([]);
   const [isDraggingRelated, setIsDraggingRelated] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { user, watchlistIds, toggleWatchlist: ctxToggleWatchlist } = useWatchlist();
   const inWatchlist = movie?.id ? watchlistIds.has(String(movie.id)) : false;
 
   const relatedListRef = useRef(null);
-  const relatedDragStateRef = useRef({ active: false, startX: 0, startScrollLeft: 0, moved: false });
+  const relatedDragStateRef = useRef({
+    active: false,
+    startX: 0,
+    startScrollLeft: 0,
+    moved: false,
+  });
   const suppressRelatedClickRef = useRef(false);
 
   // Prevent one-frame stale detail flash when navigating between related titles.
@@ -70,7 +75,9 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
         fetchRelatedMovies(movieId),
       ]);
       setMovie(data);
-      setRelated((relatedData ?? []).filter((item) => item?.id && item.id !== data.id).slice(0, 18));
+      setRelated(
+        (relatedData ?? []).filter((item) => item?.id && item.id !== data.id).slice(0, 18),
+      );
     } catch {
       setError("Failed to load movie. Please try again.");
     } finally {
@@ -79,16 +86,18 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
     }
   }, [movieId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }, [movieId]);
 
   // Log a watch-request analytics event whenever a movie's details are opened.
   useEffect(() => {
     if (!movie?.id) return;
-    trackWatchRequest({ mediaType: 'movie', mediaId: movie.id, title: movie.title });
+    trackWatchRequest({ mediaType: "movie", mediaId: movie.id, title: movie.title });
   }, [movie?.id, movie?.title]);
 
   // Save to "Continue Watching" tracking
@@ -96,7 +105,7 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
     if (!movie || !user?.uid) return;
     saveToContinueWatching(user.uid, {
       id: movie.id,
-      mediaType: 'movie',
+      mediaType: "movie",
       title: movie.title,
       poster_path: movie.poster_path,
       vote_average: movie.vote_average,
@@ -106,9 +115,9 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
 
   useEffect(() => {
     if (!movie?.id) return;
-    const isLegacyRoute = location.pathname.startsWith('/movie/');
+    const isLegacyRoute = location.pathname.startsWith("/movie/");
     if (!isLegacyRoute) return;
-    const canonicalPath = toDetailPath('movie', movie.id, movie.title);
+    const canonicalPath = toDetailPath("movie", movie.id, movie.title);
     if (location.pathname !== canonicalPath) {
       navigate(canonicalPath, { replace: true, state: location.state });
     }
@@ -119,21 +128,24 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
     ctxToggleWatchlist(
       {
         mediaId: movie.id,
-        type: 'movie',
+        type: "movie",
         title: movie.title,
         poster_path: movie.poster_path,
         vote_average: movie.vote_average,
         release_date: movie.release_date,
       },
-      () => setIsAuthModalOpen(true)
+      () => setIsAuthModalOpen(true),
     );
   };
 
-  const handleRelatedSelect = useCallback((item) => {
-    navigate(toDetailPath('movie', item.id, item.title || item.name), {
-      state: { from: '/movies' },
-    });
-  }, [navigate]);
+  const handleRelatedSelect = useCallback(
+    (item) => {
+      navigate(toDetailPath("movie", item.id, item.title || item.name), {
+        state: { from: "/movies" },
+      });
+    },
+    [navigate],
+  );
 
   const onRelatedMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
@@ -172,51 +184,50 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
   }, []);
 
   useEffect(() => {
-    window.addEventListener('mouseup', endRelatedDrag);
-    return () => window.removeEventListener('mouseup', endRelatedDrag);
+    window.addEventListener("mouseup", endRelatedDrag);
+    return () => window.removeEventListener("mouseup", endRelatedDrag);
   }, [endRelatedDrag]);
 
   const formatRuntime = (m) => {
     if (!m) return null;
-    const h = Math.floor(m / 60), min = m % 60;
+    const h = Math.floor(m / 60),
+      min = m % 60;
     return h > 0 ? `${h}h ${min}m` : `${min}m`;
   };
 
-  if (loading) return (
-    <DetailPageSkeleton type="movie" />
-  );
+  if (loading) return <DetailPageSkeleton type="movie" />;
 
-  if (error) return (
-    <div className="min-h-[60vh] flex items-center justify-center p-6 bg-[#090b10]">
-      <div className="bg-red-900/10 border border-red-700/30 rounded-2xl p-8 max-w-sm w-full text-center backdrop-blur-md">
-        <p className="text-red-400 mb-6 font-medium">{error}</p>
-        <button
-          onClick={load}
-          disabled={retrying}
-          className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-red-600/20"
-        >
-          <FaRedo className={retrying ? "animate-spin" : ""} />
-          {retrying ? "Retrying…" : "Retry"}
-        </button>
+  if (error)
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6 bg-[#090b10]">
+        <div className="bg-red-900/10 border border-red-700/30 rounded-2xl p-8 max-w-sm w-full text-center backdrop-blur-md">
+          <p className="text-red-400 mb-6 font-medium">{error}</p>
+          <button
+            onClick={load}
+            disabled={retrying}
+            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-red-600/20"
+          >
+            <FaRedo className={retrying ? "animate-spin" : ""} />
+            {retrying ? "Retrying…" : "Retry"}
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   if (!movie) return null;
 
-  const year     = movie.release_date?.slice(0, 4);
-  const runtime  = formatRuntime(movie.runtime);
-  const rating   = movie.vote_average > 0 ? movie.vote_average.toFixed(1) : null;
-  const genres   = (movie.genres ?? []).slice(0, 4);
+  const year = movie.release_date?.slice(0, 4);
+  const runtime = formatRuntime(movie.runtime);
+  const rating = movie.vote_average > 0 ? movie.vote_average.toFixed(1) : null;
+  const genres = (movie.genres ?? []).slice(0, 4);
   const overview = movie.overview ?? "";
-  const truncated = overview.length > 280 && !showOverview
-    ? overview.slice(0, 280) + "…"
-    : overview;
+  const truncated =
+    overview.length > 280 && !showOverview ? overview.slice(0, 280) + "…" : overview;
 
   return (
     <div className="min-h-screen bg-[#07080a] text-gray-200 selection:bg-red-500/30">
       <SEO
-        title={`${movie.title}${year ? ` (${year})` : ''} — Watch Free on JOKER MOVIES`}
+        title={`${movie.title}${year ? ` (${year})` : ""} — Watch Free on JOKER MOVIES`}
         description={
           movie.overview
             ? `${movie.overview.slice(0, 150).trim()}… Watch ${movie.title} free on JOKER MOVIES.`
@@ -226,26 +237,28 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
           movie.backdrop_path
             ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
             : movie.poster_path
-            ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
-            : undefined
+              ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
+              : undefined
         }
         type="video.movie"
         jsonLd={{
-          '@context': 'https://schema.org',
-          '@type': 'Movie',
+          "@context": "https://schema.org",
+          "@type": "Movie",
           name: movie.title,
           description: movie.overview,
-          image: movie.poster_path ? `https://image.tmdb.org/t/p/w780${movie.poster_path}` : undefined,
+          image: movie.poster_path
+            ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
+            : undefined,
           dateCreated: movie.release_date,
           ...(movie.vote_average > 0 && {
             aggregateRating: {
-              '@type': 'AggregateRating',
+              "@type": "AggregateRating",
               ratingValue: movie.vote_average.toFixed(1),
               bestRating: 10,
               ratingCount: movie.vote_count,
             },
           }),
-          genre: (movie.genres ?? []).map(g => g.name),
+          genre: (movie.genres ?? []).map((g) => g.name),
         }}
       />
 
@@ -258,7 +271,10 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
               src={`${BACKDROP}${movie.backdrop_path}`}
               alt=""
               className="w-full h-full object-cover object-top"
-              style={{ filter: "brightness(0.6) contrast(1.1) saturate(1.1)", transform: "scale(1.02)" }}
+              style={{
+                filter: "brightness(0.6) contrast(1.1) saturate(1.1)",
+                transform: "scale(1.02)",
+              }}
             />
           ) : (
             <div className="w-full h-full bg-[#111319] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-800 to-[#111319]" />
@@ -281,7 +297,6 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
 
         {/* Hero Content */}
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row items-end gap-8 lg:gap-14">
-          
           {/* Poster (Desktop) */}
           {movie.poster_path && (
             <div className="hidden md:block shrink-0 z-10">
@@ -306,34 +321,49 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
             </h1>
 
             <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-300 mb-6 drop-shadow-md">
-              {year && <span className="flex items-center gap-1.5"><BiCalendar className="text-gray-400 text-base" /> {year}</span>}
-              {runtime && <span className="flex items-center gap-1.5"><BiTime className="text-gray-400 text-base" /> {runtime}</span>}
-              {rating && <span className="flex items-center gap-1.5"><FaStar className="text-yellow-500 text-base" /> {rating}</span>}
+              {year && (
+                <span className="flex items-center gap-1.5">
+                  <BiCalendar className="text-gray-400 text-base" /> {year}
+                </span>
+              )}
+              {runtime && (
+                <span className="flex items-center gap-1.5">
+                  <BiTime className="text-gray-400 text-base" /> {runtime}
+                </span>
+              )}
+              {rating && (
+                <span className="flex items-center gap-1.5">
+                  <FaStar className="text-yellow-500 text-base" /> {rating}
+                </span>
+              )}
             </div>
 
             {genres.length > 0 && (
-               <div className="flex flex-wrap gap-2 mb-6">
-                 {genres.map(g => (
-                   <span key={g.id} className="bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-xs font-semibold text-gray-200 shadow-sm">
-                     {g.name}
-                   </span>
-                 ))}
-               </div>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {genres.map((g) => (
+                  <span
+                    key={g.id}
+                    className="bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-xs font-semibold text-gray-200 shadow-sm"
+                  >
+                    {g.name}
+                  </span>
+                ))}
+              </div>
             )}
 
             {/* Actions */}
             <div className="flex flex-wrap gap-4 mb-6">
-               <button
-                 onClick={toggleWatchlist}
-                 className={`flex items-center gap-2 backdrop-blur-md text-white font-bold px-6 py-3 rounded-xl transition-all active:scale-[0.98] ${
-                   inWatchlist 
-                     ? 'bg-red-600/20 hover:bg-red-600/30 border border-red-500/50' 
-                     : 'bg-white/10 hover:bg-white/20 border border-white/10'
-                 }`}
-               >
-                 <FaBookmark className={inWatchlist ? "text-red-400" : ""} /> 
-                 {inWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
-               </button>
+              <button
+                onClick={toggleWatchlist}
+                className={`flex items-center gap-2 backdrop-blur-md text-white font-bold px-6 py-3 rounded-xl transition-all active:scale-[0.98] ${
+                  inWatchlist
+                    ? "bg-red-600/20 hover:bg-red-600/30 border border-red-500/50"
+                    : "bg-white/10 hover:bg-white/20 border border-white/10"
+                }`}
+              >
+                <FaBookmark className={inWatchlist ? "text-red-400" : ""} />
+                {inWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
+              </button>
             </div>
 
             {overview && (
@@ -343,7 +373,7 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
                 </p>
                 {overview.length > 280 && (
                   <button
-                    onClick={() => setShowOverview(p => !p)}
+                    onClick={() => setShowOverview((p) => !p)}
                     className="mt-3 text-white font-semibold hover:text-red-400 transition-colors text-sm underline underline-offset-4"
                   >
                     {showOverview ? "Show Less" : "Read More"}
@@ -357,23 +387,26 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
 
       {/* ── PLAYER & EXTRA CONTENT ── */}
       <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 md:px-12 -mt-4 md:-mt-10 mb-20">
-        
         {/* Video Player Container */}
         <div className="relative">
           {/* Subtle Video Player Glow Backdrop */}
           <div className="absolute -inset-1 bg-gradient-to-r from-red-600/30 to-blue-600/30 blur-2xl opacity-50 z-0 rounded-2xl md:rounded-[2rem]"></div>
-          
+
           <div className="relative z-10 bg-[#0f1117]/80 backdrop-blur-xl border border-white/5 rounded-2xl md:rounded-[2rem] p-2 md:p-4 shadow-2xl mb-6 ring-1 ring-white/5">
-            <MemoizedVideoPlayer key={movieId} movieId={movieId} title={movie.title} />
+            <MemoizedVideoPlayer
+              key={movie.id}
+              movieId={movie.external_ids?.imdb_id}
+              title={movie.title}
+            />
           </div>
         </div>
-
 
         {/* Info Banner */}
         <div className="flex items-start gap-4 bg-blue-900/10 border border-blue-500/20 rounded-2xl p-4 md:p-5 mx-2 md:mx-0">
           <FaInfoCircle className="text-blue-400 text-xl shrink-0 mt-0.5" />
           <p className="text-blue-200/70 text-sm leading-relaxed">
-            Pop-up and redirect ads are automatically blocked on this player for uninterrupted playback.
+            Pop-up and redirect ads are automatically blocked on this player for uninterrupted
+            playback.
           </p>
         </div>
       </div>
@@ -391,19 +424,22 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
               <span className="w-1.5 h-6 bg-red-500 rounded-full inline-block"></span>
               More Like This
             </h3>
-            
+
             <div
               ref={relatedListRef}
               onMouseDown={onRelatedMouseDown}
               onMouseMove={onRelatedMouseMove}
               onMouseLeave={endRelatedDrag}
-              className={`grid grid-flow-col auto-cols-[140px] md:auto-cols-[180px] gap-4 md:gap-5 overflow-x-auto hide-scrollbar px-4 pt-6 pb-6 -mx-4 -mt-6 select-none ${isDraggingRelated ? 'cursor-grabbing' : 'cursor-grab'}`}
+              className={`grid grid-flow-col auto-cols-[140px] md:auto-cols-[180px] gap-4 md:gap-5 overflow-x-auto hide-scrollbar px-4 pt-6 pb-6 -mx-4 -mt-6 select-none ${isDraggingRelated ? "cursor-grabbing" : "cursor-grab"}`}
             >
               {related.map((item) => (
-                <div key={item.id} className="shrink-0 transition-transform duration-300 hover:-translate-y-2">
+                <div
+                  key={item.id}
+                  className="shrink-0 transition-transform duration-300 hover:-translate-y-2"
+                >
                   <ContentCard
                     title={item.title || item.name}
-                    poster={item.poster_path ? `${POSTER}${item.poster_path}` : '/placeholder.svg'}
+                    poster={item.poster_path ? `${POSTER}${item.poster_path}` : "/placeholder.svg"}
                     rating={item.vote_average}
                     releaseDate={item.release_date}
                     onClick={() => {
@@ -422,22 +458,29 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
       <footer className="bg-[#040507] border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs md:text-sm text-gray-500">
           <div className="flex items-center gap-2">
-            <span className="text-white font-black text-base">JOKER<span className="text-red-500"> MOVIES</span></span>
+            <span className="text-white font-black text-base">
+              JOKER<span className="text-red-500"> MOVIES</span>
+            </span>
             <span className="mx-2 opacity-50">|</span>
           </div>
           <div className="flex items-center gap-2">
             <span>© {new Date().getFullYear()} JOKER MOVIES</span>
             <span className="mx-2 opacity-50">|</span>
             <span>
-              Data by{' '}
-              <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors font-medium">
+              Data by{" "}
+              <a
+                href="https://www.themoviedb.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white transition-colors font-medium"
+              >
                 TMDB
               </a>
             </span>
           </div>
         </div>
       </footer>
-      
+
       {/* Auth Modal Form */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
@@ -449,5 +492,3 @@ MovieDetails.propTypes = {
 };
 
 export default memo(MovieDetails);
-
-

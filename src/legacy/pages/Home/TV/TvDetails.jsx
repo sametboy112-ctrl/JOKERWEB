@@ -1,11 +1,4 @@
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useState,
-  useCallback,
-  memo,
-  useRef,
-} from "react";
+import React, { useEffect, useLayoutEffect, useState, useCallback, memo, useRef } from "react";
 import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,7 +6,16 @@ import { fetchSeriesDetails, fetchAllEpisodes, fetchRelatedSeries } from "../Fet
 import { getIdFromDetailSlug, toDetailPath } from "../urlUtils";
 import { saveToContinueWatching } from "../../../utils/continueWatching";
 import { trackWatchRequest } from "../../../utils/analytics";
-import { FaRedo, FaStar, FaArrowLeft, FaTv, FaStepBackward, FaStepForward, FaInfoCircle, FaBookmark } from "react-icons/fa";
+import {
+  FaRedo,
+  FaStar,
+  FaArrowLeft,
+  FaTv,
+  FaStepBackward,
+  FaStepForward,
+  FaInfoCircle,
+  FaBookmark,
+} from "react-icons/fa";
 import { BiCalendar, BiGlobe, BiTv, BiChevronLeft, BiChevronRight, BiSearch } from "react-icons/bi";
 import DetailPageSkeleton from "../reused/DetailPageSkeleton";
 import VideoPlayer from "./VideoPlayer";
@@ -58,7 +60,7 @@ const TvDetails = ({ tvId: tvIdProp }) => {
   const [playingSeason, setPlayingSeason] = useState(null);
   const [playingEpisode, setPlayingEpisode] = useState(null);
   const [showOverview, setShowOverview] = useState(false);
-  const [episodeQuery, setEpisodeQuery] = useState('');
+  const [episodeQuery, setEpisodeQuery] = useState("");
   const [isDraggingEpisodes, setIsDraggingEpisodes] = useState(false);
   const [isDraggingSeasons, setIsDraggingSeasons] = useState(false);
   const [isDraggingRelated, setIsDraggingRelated] = useState(false);
@@ -84,7 +86,12 @@ const TvDetails = ({ tvId: tvIdProp }) => {
   const seasonDragStateRef = useRef({ active: false, startX: 0, startScrollLeft: 0, moved: false });
   const suppressSeasonClickRef = useRef(false);
   const relatedListRef = useRef(null);
-  const relatedDragStateRef = useRef({ active: false, startX: 0, startScrollLeft: 0, moved: false });
+  const relatedDragStateRef = useRef({
+    active: false,
+    startX: 0,
+    startScrollLeft: 0,
+    moved: false,
+  });
   const suppressRelatedClickRef = useRef(false);
 
   // Prevent one-frame stale detail flash when navigating between related titles.
@@ -97,7 +104,7 @@ const TvDetails = ({ tvId: tvIdProp }) => {
     setPlayingSeason(null);
     setPlayingEpisode(null);
     setShowOverview(false);
-    setEpisodeQuery('');
+    setEpisodeQuery("");
     setRelated([]);
     setIsDraggingEpisodes(false);
     setIsDraggingSeasons(false);
@@ -119,9 +126,11 @@ const TvDetails = ({ tvId: tvIdProp }) => {
         fetchRelatedSeries(tvId),
       ]);
       setTv(seriesData);
-      setRelated((relatedData ?? []).filter((item) => item?.id && item.id !== seriesData.id).slice(0, 18));
+      setRelated(
+        (relatedData ?? []).filter((item) => item?.id && item.id !== seriesData.id).slice(0, 18),
+      );
       const filtered = (seasonsData ?? [])
-        .filter(s => s.season_number > 0)
+        .filter((s) => s.season_number > 0)
         .sort((a, b) => a.season_number - b.season_number);
       setAllSeasons(filtered);
 
@@ -129,28 +138,31 @@ const TvDetails = ({ tvId: tvIdProp }) => {
         // Read URL params at fetch time so the correct season/episode is set as the
         // initial state directly — prevents S1E1 flash before URL sync can override.
         const urlParams = new URLSearchParams(window.location.search);
-        let urlSeason = getValidParamNumber(urlParams, 'season');
-        let urlEpisode = getValidParamNumber(urlParams, 'episode');
+        let urlSeason = getValidParamNumber(urlParams, "season");
+        let urlEpisode = getValidParamNumber(urlParams, "episode");
 
         // ++ Progress Tracking: Resume from exact episode if found in Continue Watching cache ++
         if (urlSeason === null && urlEpisode === null) {
           try {
-            const cwCache = JSON.parse(localStorage.getItem('wf_cw_cache_items') || '[]');
-            const cwMatch = cwCache.find(cw => cw.id === numericTvId);
+            const cwCache = JSON.parse(localStorage.getItem("wf_cw_cache_items") || "[]");
+            const cwMatch = cwCache.find((cw) => cw.id === numericTvId);
             if (cwMatch && cwMatch.season && cwMatch.episode) {
               urlSeason = cwMatch.season;
               urlEpisode = cwMatch.episode;
             }
-          } catch { /* ignore cache parse errors */ }
+          } catch {
+            /* ignore cache parse errors */
+          }
         }
 
         const selectedSeason =
-          (urlSeason && filtered.find((s) => s.season_number === urlSeason))
-          ?? filtered[0];
+          (urlSeason && filtered.find((s) => s.season_number === urlSeason)) ?? filtered[0];
         const selectedEpisode =
-          (urlEpisode && selectedSeason.episodes?.find((e) => e.episode_number === urlEpisode)?.episode_number)
-          ?? selectedSeason.episodes?.find((e) => e.episode_number)?.episode_number
-          ?? 1;
+          (urlEpisode &&
+            selectedSeason.episodes?.find((e) => e.episode_number === urlEpisode)
+              ?.episode_number) ??
+          selectedSeason.episodes?.find((e) => e.episode_number)?.episode_number ??
+          1;
 
         setViewingSeason(selectedSeason.season_number);
         setPlayingSeason(selectedSeason.season_number);
@@ -167,22 +179,28 @@ const TvDetails = ({ tvId: tvIdProp }) => {
   useEffect(() => {
     load();
     return () => {
-      setTv(null); setAllSeasons([]);
-      setViewingSeason(null); setPlayingSeason(null); setPlayingEpisode(null);
+      setTv(null);
+      setAllSeasons([]);
+      setViewingSeason(null);
+      setPlayingSeason(null);
+      setPlayingEpisode(null);
     };
   }, [load]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }, [tvId]);
 
   useEffect(() => {
     if (!tv?.id) return;
-    const isLegacyRoute = location.pathname.startsWith('/tv/');
+    const isLegacyRoute = location.pathname.startsWith("/tv/");
     if (!isLegacyRoute) return;
-    const canonicalPath = toDetailPath('tv', tv.id, tv.name);
+    const canonicalPath = toDetailPath("tv", tv.id, tv.name);
     if (location.pathname !== canonicalPath) {
-      navigate({ pathname: canonicalPath, search: location.search }, { replace: true, state: location.state });
+      navigate(
+        { pathname: canonicalPath, search: location.search },
+        { replace: true, state: location.state },
+      );
     }
   }, [tv, location.pathname, location.search, location.state, navigate]);
 
@@ -191,13 +209,13 @@ const TvDetails = ({ tvId: tvIdProp }) => {
     ctxToggleWatchlist(
       {
         mediaId: tv.id,
-        type: 'tv',
+        type: "tv",
         title: tv.name,
         poster_path: tv.poster_path,
         vote_average: tv.vote_average,
         release_date: tv.first_air_date,
       },
-      () => setIsAuthModalOpen(true)
+      () => setIsAuthModalOpen(true),
     );
   };
 
@@ -207,15 +225,15 @@ const TvDetails = ({ tvId: tvIdProp }) => {
     if (!tv?.id || Number(tv.id) !== numericTvId) return;
 
     const params = new URLSearchParams(location.search);
-    const urlSeason = getValidParamNumber(params, 'season');
-    const urlEpisode = getValidParamNumber(params, 'episode');
+    const urlSeason = getValidParamNumber(params, "season");
+    const urlEpisode = getValidParamNumber(params, "episode");
     if (urlSeason === null && urlEpisode === null) return;
 
     const selectedSeason = allSeasons.find((s) => s.season_number === urlSeason) ?? allSeasons[0];
     const selectedEpisode =
-      selectedSeason.episodes?.find((e) => e.episode_number === urlEpisode)?.episode_number
-      ?? selectedSeason.episodes?.find((e) => e.episode_number)?.episode_number
-      ?? 1;
+      selectedSeason.episodes?.find((e) => e.episode_number === urlEpisode)?.episode_number ??
+      selectedSeason.episodes?.find((e) => e.episode_number)?.episode_number ??
+      1;
 
     if (viewingSeason !== selectedSeason.season_number) {
       setViewingSeason(selectedSeason.season_number);
@@ -234,20 +252,29 @@ const TvDetails = ({ tvId: tvIdProp }) => {
     if (!tv?.id || Number(tv.id) !== numericTvId) return;
 
     const params = new URLSearchParams(location.search);
-    const currentSeason = getValidParamNumber(params, 'season');
-    const currentEpisode = getValidParamNumber(params, 'episode');
+    const currentSeason = getValidParamNumber(params, "season");
+    const currentEpisode = getValidParamNumber(params, "episode");
     if (currentSeason === playingSeason && currentEpisode === playingEpisode) return;
 
     const nextParams = new URLSearchParams(location.search);
-    nextParams.set('season', String(playingSeason));
-    nextParams.set('episode', String(playingEpisode));
+    nextParams.set("season", String(playingSeason));
+    nextParams.set("episode", String(playingEpisode));
     setSearchParams(nextParams, { replace: true });
-  }, [allSeasons.length, playingSeason, playingEpisode, location.search, setSearchParams, loading, tv, numericTvId]);
+  }, [
+    allSeasons.length,
+    playingSeason,
+    playingEpisode,
+    location.search,
+    setSearchParams,
+    loading,
+    tv,
+    numericTvId,
+  ]);
 
   // Log a watch-request analytics event whenever a series' details are opened.
   useEffect(() => {
     if (!tv?.id) return;
-    trackWatchRequest({ mediaType: 'tv', mediaId: tv.id, title: tv.name });
+    trackWatchRequest({ mediaType: "tv", mediaId: tv.id, title: tv.name });
   }, [tv?.id, tv?.name]);
 
   // Save to "Continue Watching" tracking
@@ -255,7 +282,7 @@ const TvDetails = ({ tvId: tvIdProp }) => {
     if (!tv || playingSeason === null || playingEpisode === null || !user?.uid) return;
     saveToContinueWatching(user.uid, {
       id: tv.id,
-      mediaType: 'tv',
+      mediaType: "tv",
       title: `${tv.name} - S${playingSeason}E${playingEpisode}`,
       poster_path: tv.poster_path,
       vote_average: tv.vote_average,
@@ -281,18 +308,21 @@ const TvDetails = ({ tvId: tvIdProp }) => {
     }
   }, [viewingSeason, playingSeason, playingEpisode]);
 
-  const currentSeasonData = allSeasons.find(s => s.season_number === viewingSeason);
-  const sortedEpisodes = [...(currentSeasonData?.episodes ?? [])].sort((a, b) => a.episode_number - b.episode_number);
+  const currentSeasonData = allSeasons.find((s) => s.season_number === viewingSeason);
+  const sortedEpisodes = [...(currentSeasonData?.episodes ?? [])].sort(
+    (a, b) => a.episode_number - b.episode_number,
+  );
   const filteredEpisodes = sortedEpisodes.filter((ep) => {
     const q = episodeQuery.trim().toLowerCase();
     if (!q) return true;
-    const title = (ep.name || '').toLowerCase();
+    const title = (ep.name || "").toLowerCase();
     return title.includes(q) || String(ep.episode_number).includes(q);
   });
 
-  const activeEpisodeIndex = sortedEpisodes.findIndex((ep) => (
-    ep.episode_number === playingEpisode && currentSeasonData?.season_number === playingSeason
-  ));
+  const activeEpisodeIndex = sortedEpisodes.findIndex(
+    (ep) =>
+      ep.episode_number === playingEpisode && currentSeasonData?.season_number === playingSeason,
+  );
 
   const jumpEpisode = (direction) => {
     if (!sortedEpisodes.length || activeEpisodeIndex < 0 || !currentSeasonData) return;
@@ -409,60 +439,64 @@ const TvDetails = ({ tvId: tvIdProp }) => {
   }, []);
 
   useEffect(() => {
-    window.addEventListener('mouseup', endSeasonDrag);
-    return () => window.removeEventListener('mouseup', endSeasonDrag);
+    window.addEventListener("mouseup", endSeasonDrag);
+    return () => window.removeEventListener("mouseup", endSeasonDrag);
   }, [endSeasonDrag]);
 
   useEffect(() => {
-    window.addEventListener('mouseup', endEpisodeDrag);
-    return () => window.removeEventListener('mouseup', endEpisodeDrag);
+    window.addEventListener("mouseup", endEpisodeDrag);
+    return () => window.removeEventListener("mouseup", endEpisodeDrag);
   }, [endEpisodeDrag]);
 
   useEffect(() => {
-    window.addEventListener('mouseup', endRelatedDrag);
-    return () => window.removeEventListener('mouseup', endRelatedDrag);
+    window.addEventListener("mouseup", endRelatedDrag);
+    return () => window.removeEventListener("mouseup", endRelatedDrag);
   }, [endRelatedDrag]);
 
-  if (loading) return (
-    <DetailPageSkeleton type="tv" />
-  );
+  if (loading) return <DetailPageSkeleton type="tv" />;
 
-  if (error) return (
-    <div className="min-h-[60vh] flex items-center justify-center p-6">
-      <div className="bg-red-900/20 border border-red-700/50 rounded-2xl p-8 max-w-sm w-full text-center">
-        <p className="text-red-300 mb-6">{error}</p>
-        <button
-          onClick={load}
-          disabled={retrying}
-          className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
-        >
-          <FaRedo className={retrying ? "animate-spin" : ""} />
-          {retrying ? "Retrying…" : "Retry"}
-        </button>
+  if (error)
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="bg-red-900/20 border border-red-700/50 rounded-2xl p-8 max-w-sm w-full text-center">
+          <p className="text-red-300 mb-6">{error}</p>
+          <button
+            onClick={load}
+            disabled={retrying}
+            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
+          >
+            <FaRedo className={retrying ? "animate-spin" : ""} />
+            {retrying ? "Retrying…" : "Retry"}
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   if (!tv) return null;
 
   const rating = tv.vote_average > 0 ? tv.vote_average.toFixed(1) : null;
   const year = (tv.first_air_date ?? "").slice(0, 4);
-  const genres = (tv.genres ?? []).slice(0, 3).map(g => g.name).join(" · ");
+  const genres = (tv.genres ?? [])
+    .slice(0, 3)
+    .map((g) => g.name)
+    .join(" · ");
   const overview = tv.overview ?? "";
-  const truncated = overview.length > 240 && !showOverview
-    ? overview.slice(0, 240) + "…"
-    : overview;
+  const truncated =
+    overview.length > 240 && !showOverview ? overview.slice(0, 240) + "…" : overview;
 
   const handleRelatedSelect = (item) => {
-    navigate({ pathname: toDetailPath('tv', item.id, item.name || item.title), search: '' }, {
-      state: { from: '/series' },
-    });
+    navigate(
+      { pathname: toDetailPath("tv", item.id, item.name || item.title), search: "" },
+      {
+        state: { from: "/series" },
+      },
+    );
   };
 
   return (
     <div className="min-h-screen bg-[#07080a] text-gray-200 selection:bg-red-500/30">
       <SEO
-        title={`${tv.name}${year ? ` (${year})` : ''} — Watch Free on JOKER MOVIES`}
+        title={`${tv.name}${year ? ` (${year})` : ""} — Watch Free on JOKER MOVIES`}
         description={
           tv.overview
             ? `${tv.overview.slice(0, 150).trim()}… Stream ${tv.name} free on JOKER MOVIES.`
@@ -477,8 +511,8 @@ const TvDetails = ({ tvId: tvIdProp }) => {
         }
         type="video.episode"
         jsonLd={{
-          '@context': 'https://schema.org',
-          '@type': 'TVSeries',
+          "@context": "https://schema.org",
+          "@type": "TVSeries",
           name: tv.name,
           description: tv.overview,
           image: tv.poster_path ? `https://image.tmdb.org/t/p/w780${tv.poster_path}` : undefined,
@@ -486,13 +520,13 @@ const TvDetails = ({ tvId: tvIdProp }) => {
           numberOfSeasons: allSeasons.length || undefined,
           ...(tv.vote_average > 0 && {
             aggregateRating: {
-              '@type': 'AggregateRating',
+              "@type": "AggregateRating",
               ratingValue: tv.vote_average.toFixed(1),
               bestRating: 10,
               ratingCount: tv.vote_count,
             },
           }),
-          genre: (tv.genres ?? []).map(g => g.name),
+          genre: (tv.genres ?? []).map((g) => g.name),
         }}
       />
 
@@ -505,7 +539,10 @@ const TvDetails = ({ tvId: tvIdProp }) => {
               src={`${BACKDROP}${tv.backdrop_path}`}
               alt=""
               className="w-full h-full object-cover object-top"
-              style={{ filter: "brightness(0.6) contrast(1.1) saturate(1.1)", transform: "scale(1.02)" }}
+              style={{
+                filter: "brightness(0.6) contrast(1.1) saturate(1.1)",
+                transform: "scale(1.02)",
+              }}
             />
           ) : (
             <div className="w-full h-full bg-[#111319] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-800 to-[#111319]" />
@@ -528,7 +565,6 @@ const TvDetails = ({ tvId: tvIdProp }) => {
 
         {/* Hero Content */}
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row items-end gap-8 lg:gap-14">
-          
           {/* Poster */}
           {tv.poster_path && (
             <div className="hidden md:block shrink-0 z-10">
@@ -553,34 +589,50 @@ const TvDetails = ({ tvId: tvIdProp }) => {
             </h1>
 
             <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-300 mb-6 drop-shadow-md">
-              {year && <span className="flex items-center gap-1.5"><BiCalendar className="text-gray-400 text-base" /> {year}</span>}
-              {allSeasons.length > 0 && <span className="flex items-center gap-1.5"><BiTv className="text-gray-400 text-base" /> {allSeasons.length} Season{allSeasons.length !== 1 ? 's' : ''}</span>}
-              {rating && <span className="flex items-center gap-1.5"><FaStar className="text-yellow-500 text-base" /> {rating}</span>}
+              {year && (
+                <span className="flex items-center gap-1.5">
+                  <BiCalendar className="text-gray-400 text-base" /> {year}
+                </span>
+              )}
+              {allSeasons.length > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <BiTv className="text-gray-400 text-base" /> {allSeasons.length} Season
+                  {allSeasons.length !== 1 ? "s" : ""}
+                </span>
+              )}
+              {rating && (
+                <span className="flex items-center gap-1.5">
+                  <FaStar className="text-yellow-500 text-base" /> {rating}
+                </span>
+              )}
             </div>
 
             {(tv.genres ?? []).length > 0 && (
-               <div className="flex flex-wrap gap-2 mb-6">
-                 {(tv.genres ?? []).map(g => (
-                   <span key={g.id} className="bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-xs font-semibold text-gray-200 shadow-sm">
-                     {g.name}
-                   </span>
-                 ))}
-               </div>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {(tv.genres ?? []).map((g) => (
+                  <span
+                    key={g.id}
+                    className="bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-xs font-semibold text-gray-200 shadow-sm"
+                  >
+                    {g.name}
+                  </span>
+                ))}
+              </div>
             )}
 
             {/* Actions */}
             <div className="flex flex-wrap gap-4 mb-6">
-               <button
-                 onClick={toggleWatchlist}
-                 className={`flex items-center gap-2 backdrop-blur-md text-white font-bold px-6 py-3 rounded-xl transition-all active:scale-[0.98] ${
-                   inWatchlist 
-                     ? 'bg-red-600/20 hover:bg-red-600/30 border border-red-500/50' 
-                     : 'bg-white/10 hover:bg-white/20 border border-white/10'
-                 }`}
-               >
-                 <FaBookmark className={inWatchlist ? "text-red-400" : ""} /> 
-                 {inWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
-               </button>
+              <button
+                onClick={toggleWatchlist}
+                className={`flex items-center gap-2 backdrop-blur-md text-white font-bold px-6 py-3 rounded-xl transition-all active:scale-[0.98] ${
+                  inWatchlist
+                    ? "bg-red-600/20 hover:bg-red-600/30 border border-red-500/50"
+                    : "bg-white/10 hover:bg-white/20 border border-white/10"
+                }`}
+              >
+                <FaBookmark className={inWatchlist ? "text-red-400" : ""} />
+                {inWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
+              </button>
             </div>
 
             {overview && (
@@ -590,7 +642,7 @@ const TvDetails = ({ tvId: tvIdProp }) => {
                 </p>
                 {overview.length > 240 && (
                   <button
-                    onClick={() => setShowOverview(p => !p)}
+                    onClick={() => setShowOverview((p) => !p)}
                     className="mt-3 text-white font-semibold hover:text-red-400 transition-colors text-sm underline underline-offset-4"
                   >
                     {showOverview ? "Show Less" : "Read More"}
@@ -607,11 +659,11 @@ const TvDetails = ({ tvId: tvIdProp }) => {
         <div className="relative mb-6">
           {/* Subtle Video Player Glow Backdrop */}
           <div className="absolute -inset-1 bg-gradient-to-r from-red-600/30 to-blue-600/30 blur-2xl opacity-50 z-0 rounded-2xl md:rounded-[2rem]"></div>
-          
+
           <div className="relative z-10 bg-[#0f1117]/80 backdrop-blur-xl border border-white/5 rounded-2xl md:rounded-[2rem] p-2 md:p-4 shadow-2xl ring-1 ring-white/5">
             {playingSeason !== null && playingEpisode !== null ? (
               <MemoizedVideoPlayer
-                tvId={tvId}
+                tvId={tv.external_ids?.imdb_id}
                 season={playingSeason}
                 episode={playingEpisode}
                 title={tv.name}
@@ -623,36 +675,38 @@ const TvDetails = ({ tvId: tvIdProp }) => {
               </div>
             )}
 
-          
-          {/* Controls */}
-          {playingSeason !== null && playingEpisode !== null && sortedEpisodes.length > 1 && (
-            <div className="flex items-center justify-between mt-4 px-2 mb-2 gap-3">
-              <button
-                onClick={() => jumpEpisode(-1)}
-                disabled={activeEpisodeIndex <= 0}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.1] text-gray-300 hover:text-white hover:bg-white/[0.10] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold"
-              >
-                <FaStepBackward className="text-xs" />
-                Prev
-              </button>
+            {/* Controls */}
+            {playingSeason !== null && playingEpisode !== null && sortedEpisodes.length > 1 && (
+              <div className="flex items-center justify-between mt-4 px-2 mb-2 gap-3">
+                <button
+                  onClick={() => jumpEpisode(-1)}
+                  disabled={activeEpisodeIndex <= 0}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.1] text-gray-300 hover:text-white hover:bg-white/[0.10] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold"
+                >
+                  <FaStepBackward className="text-xs" />
+                  Prev
+                </button>
 
-              <span className="text-xs text-gray-400 font-semibold tracking-wide hidden sm:block truncate text-center max-w-sm">
-                S{String(playingSeason).padStart(2, '0')} · E{String(playingEpisode).padStart(2, '0')}
-                {activeEpisodeIndex >= 0 && sortedEpisodes[activeEpisodeIndex]?.name
-                  ? ` — ${sortedEpisodes[activeEpisodeIndex].name}`
-                  : ''}
-              </span>
+                <span className="text-xs text-gray-400 font-semibold tracking-wide hidden sm:block truncate text-center max-w-sm">
+                  S{String(playingSeason).padStart(2, "0")} · E
+                  {String(playingEpisode).padStart(2, "0")}
+                  {activeEpisodeIndex >= 0 && sortedEpisodes[activeEpisodeIndex]?.name
+                    ? ` — ${sortedEpisodes[activeEpisodeIndex].name}`
+                    : ""}
+                </span>
 
-              <button
-                onClick={() => jumpEpisode(1)}
-                disabled={activeEpisodeIndex < 0 || activeEpisodeIndex >= sortedEpisodes.length - 1}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-500 border border-red-500/50 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-[0_0_15px_rgba(220,38,38,0.2)]"
-              >
-                Next
-                <FaStepForward className="text-xs" />
-              </button>
-            </div>
-          )}
+                <button
+                  onClick={() => jumpEpisode(1)}
+                  disabled={
+                    activeEpisodeIndex < 0 || activeEpisodeIndex >= sortedEpisodes.length - 1
+                  }
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-500 border border-red-500/50 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-[0_0_15px_rgba(220,38,38,0.2)]"
+                >
+                  Next
+                  <FaStepForward className="text-xs" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -662,12 +716,12 @@ const TvDetails = ({ tvId: tvIdProp }) => {
         <div className="flex items-start gap-4 bg-blue-900/10 border border-blue-500/20 rounded-2xl p-4 md:p-5">
           <FaInfoCircle className="text-blue-400 text-xl shrink-0 mt-0.5" />
           <p className="text-blue-200/70 text-sm leading-relaxed">
-            Pop-up and redirect ads are automatically blocked on this player for uninterrupted playback.
+            Pop-up and redirect ads are automatically blocked on this player for uninterrupted
+            playback.
           </p>
         </div>
       </div>
-     
-          
+
       {/* ── EPISODES SELECTOR ── */}
       {allSeasons.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 pb-16">
@@ -707,9 +761,9 @@ const TvDetails = ({ tvId: tvIdProp }) => {
                   onMouseDown={onSeasonMouseDown}
                   onMouseMove={onSeasonMouseMove}
                   onMouseLeave={endSeasonDrag}
-                  className={`flex gap-3 overflow-x-auto hide-scrollbar ${isDraggingSeasons ? 'cursor-grabbing' : 'cursor-grab'}`}
+                  className={`flex gap-3 overflow-x-auto hide-scrollbar ${isDraggingSeasons ? "cursor-grabbing" : "cursor-grab"}`}
                 >
-                  {allSeasons.map(season => {
+                  {allSeasons.map((season) => {
                     const isViewing = viewingSeason === season.season_number;
                     return (
                       <button
@@ -721,14 +775,15 @@ const TvDetails = ({ tvId: tvIdProp }) => {
                             return;
                           }
                           const defaultEpisode =
-                            season.episodes?.find((ep) => ep.episode_number === 1)?.episode_number
-                            ?? season.episodes?.[0]?.episode_number
-                            ?? 1;
+                            season.episodes?.find((ep) => ep.episode_number === 1)
+                              ?.episode_number ??
+                            season.episodes?.[0]?.episode_number ??
+                            1;
                           setViewingSeason(season.season_number);
                           setPlayingSeason(season.season_number);
                           setPlayingEpisode(defaultEpisode);
                         }}
-                        className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${isViewing ? 'bg-red-600 text-white shadow-[0_4px_14px_rgba(220,38,38,0.4)]' : 'bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] hover:text-white border border-white/5'}`}
+                        className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${isViewing ? "bg-red-600 text-white shadow-[0_4px_14px_rgba(220,38,38,0.4)]" : "bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] hover:text-white border border-white/5"}`}
                       >
                         Season {season.season_number}
                       </button>
@@ -746,10 +801,11 @@ const TvDetails = ({ tvId: tvIdProp }) => {
                   onMouseDown={onEpisodeMouseDown}
                   onMouseMove={onEpisodeMouseMove}
                   onMouseLeave={endEpisodeDrag}
-                  className={`grid grid-flow-col auto-cols-[180px] sm:auto-cols-[220px] gap-4 overflow-x-auto hide-scrollbar pb-4 select-none ${isDraggingEpisodes ? 'cursor-grabbing' : 'cursor-grab'}`}
+                  className={`grid grid-flow-col auto-cols-[180px] sm:auto-cols-[220px] gap-4 overflow-x-auto hide-scrollbar pb-4 select-none ${isDraggingEpisodes ? "cursor-grabbing" : "cursor-grab"}`}
                 >
-                  {filteredEpisodes.map(ep => {
-                    const isPlaying = playingSeason === viewingSeason && playingEpisode === ep.episode_number;
+                  {filteredEpisodes.map((ep) => {
+                    const isPlaying =
+                      playingSeason === viewingSeason && playingEpisode === ep.episode_number;
                     return (
                       <button
                         ref={isPlaying ? activeEpisodeRef : null}
@@ -760,24 +816,30 @@ const TvDetails = ({ tvId: tvIdProp }) => {
                           setPlayingEpisode(ep.episode_number);
                         }}
                         className="group relative flex flex-col rounded-2xl overflow-hidden text-left bg-black hover:ring-2 hover:ring-white/20 transition-all duration-300 shrink-0"
-                        style={isPlaying ? {
-                          ringWidth: '2px',
-                          ringColor: '#dc2626',
-                          boxShadow: '0 10px 30px rgba(220,38,38,0.3)',
-                        } : {
-                           ringWidth: '1px',
-                           ringColor: 'rgba(255,255,255,0.1)'
-                        }}
+                        style={
+                          isPlaying
+                            ? {
+                                ringWidth: "2px",
+                                ringColor: "#dc2626",
+                                boxShadow: "0 10px 30px rgba(220,38,38,0.3)",
+                              }
+                            : {
+                                ringWidth: "1px",
+                                ringColor: "rgba(255,255,255,0.1)",
+                              }
+                        }
                       >
-                        <div className={`absolute inset-0 border-2 rounded-2xl pointer-events-none z-20 ${isPlaying ? 'border-red-500' : 'border-white/5 group-hover:border-white/20'} transition-colors`}></div>
-                        
+                        <div
+                          className={`absolute inset-0 border-2 rounded-2xl pointer-events-none z-20 ${isPlaying ? "border-red-500" : "border-white/5 group-hover:border-white/20"} transition-colors`}
+                        ></div>
+
                         {/* Thumbnail */}
                         <div className="relative w-full aspect-video bg-[#0d1117] overflow-hidden">
                           {ep.still_path ? (
                             <img
                               src={`${STILL}${ep.still_path}`}
                               alt=""
-                              className={`w-full h-full object-cover transition-transform duration-500 ${isPlaying ? 'scale-105' : 'group-hover:scale-110'}`}
+                              className={`w-full h-full object-cover transition-transform duration-500 ${isPlaying ? "scale-105" : "group-hover:scale-110"}`}
                               draggable={false}
                             />
                           ) : (
@@ -800,7 +862,11 @@ const TvDetails = ({ tvId: tvIdProp }) => {
                           {!isPlaying && (
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
                               <div className="w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-300 shadow-lg">
-                                <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                <svg
+                                  className="w-5 h-5 ml-1"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
                                   <path d="M8 5v14l11-7z" />
                                 </svg>
                               </div>
@@ -809,12 +875,18 @@ const TvDetails = ({ tvId: tvIdProp }) => {
                         </div>
 
                         {/* Info */}
-                        <div className={`px-4 py-3.5 flex-1 relative z-10 ${isPlaying ? 'bg-red-950/40' : 'bg-[#151821]'}`}>
-                          <p className={`text-sm font-bold line-clamp-2 leading-snug ${isPlaying ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
+                        <div
+                          className={`px-4 py-3.5 flex-1 relative z-10 ${isPlaying ? "bg-red-950/40" : "bg-[#151821]"}`}
+                        >
+                          <p
+                            className={`text-sm font-bold line-clamp-2 leading-snug ${isPlaying ? "text-white" : "text-gray-300 group-hover:text-white"}`}
+                          >
                             {ep.name || `Episode ${ep.episode_number}`}
                           </p>
                           {ep.runtime && (
-                            <p className="text-[11px] text-gray-500 font-medium mt-1.5">{ep.runtime} min</p>
+                            <p className="text-[11px] text-gray-500 font-medium mt-1.5">
+                              {ep.runtime} min
+                            </p>
                           )}
                         </div>
                       </button>
@@ -823,7 +895,11 @@ const TvDetails = ({ tvId: tvIdProp }) => {
                 </div>
               ) : (
                 <div className="py-10 text-center text-gray-500 bg-white/[0.02] rounded-2xl border border-white/5">
-                  <p className="text-sm">{episodeQuery.trim() ? 'No episodes found matching your search.' : 'No episodes available for this season.'}</p>
+                  <p className="text-sm">
+                    {episodeQuery.trim()
+                      ? "No episodes found matching your search."
+                      : "No episodes available for this season."}
+                  </p>
                 </div>
               )}
             </div>
@@ -832,9 +908,7 @@ const TvDetails = ({ tvId: tvIdProp }) => {
       )}
 
       {/* ── CAST & CREW ── */}
-      {tv.credits?.cast && tv.credits.cast.length > 0 && (
-        <CastRow cast={tv.credits.cast} />
-      )}
+      {tv.credits?.cast && tv.credits.cast.length > 0 && <CastRow cast={tv.credits.cast} />}
 
       {/* ── RELATED TITLES ── */}
       {related.length > 0 && (
@@ -844,19 +918,26 @@ const TvDetails = ({ tvId: tvIdProp }) => {
               <span className="w-1.5 h-6 bg-red-500 rounded-full inline-block"></span>
               More Like This
             </h3>
-            
+
             <div
               ref={relatedListRef}
               onMouseDown={onRelatedMouseDown}
               onMouseMove={onRelatedMouseMove}
               onMouseLeave={endRelatedDrag}
-              className={`grid grid-flow-col auto-cols-[140px] md:auto-cols-[180px] gap-4 md:gap-5 overflow-x-auto hide-scrollbar px-4 pt-6 pb-6 -mx-4 -mt-6 select-none ${isDraggingRelated ? 'cursor-grabbing' : 'cursor-grab'}`}
+              className={`grid grid-flow-col auto-cols-[140px] md:auto-cols-[180px] gap-4 md:gap-5 overflow-x-auto hide-scrollbar px-4 pt-6 pb-6 -mx-4 -mt-6 select-none ${isDraggingRelated ? "cursor-grabbing" : "cursor-grab"}`}
             >
               {related.map((item) => (
-                <div key={item.id} className="shrink-0 transition-transform duration-300 hover:-translate-y-2">
+                <div
+                  key={item.id}
+                  className="shrink-0 transition-transform duration-300 hover:-translate-y-2"
+                >
                   <ContentCard
                     title={item.name || item.title}
-                    poster={item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : '/placeholder.svg'}
+                    poster={
+                      item.poster_path
+                        ? `https://image.tmdb.org/t/p/w342${item.poster_path}`
+                        : "/placeholder.svg"
+                    }
                     rating={item.vote_average}
                     releaseDate={item.first_air_date}
                     onClick={() => {
@@ -875,22 +956,29 @@ const TvDetails = ({ tvId: tvIdProp }) => {
       <footer className="bg-[#040507] border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs md:text-sm text-gray-500">
           <div className="flex items-center gap-2">
-            <span className="text-white font-black text-base">JOKER<span className="text-red-500"> MOVIES</span></span>
+            <span className="text-white font-black text-base">
+              JOKER<span className="text-red-500"> MOVIES</span>
+            </span>
             <span className="mx-2 opacity-50">|</span>
           </div>
           <div className="flex items-center gap-2">
             <span>© {new Date().getFullYear()} JOKER MOVIES</span>
             <span className="mx-2 opacity-50">|</span>
             <span>
-              Data by{' '}
-              <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors font-medium">
+              Data by{" "}
+              <a
+                href="https://www.themoviedb.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white transition-colors font-medium"
+              >
                 TMDB
               </a>
             </span>
           </div>
         </div>
       </footer>
-      
+
       {/* Auth Modal Form */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>

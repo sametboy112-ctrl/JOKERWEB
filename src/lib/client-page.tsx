@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, type ComponentType } from "react";
 

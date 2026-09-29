@@ -2,13 +2,13 @@
  * Convert a title string into a URL-safe slug.
  * e.g. "Fight Club" -> "fight-club"
  */
-export function toSlug(title = '') {
+export function toSlug(title = "") {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')   // remove special chars
+    .replace(/[^a-z0-9\s-]/g, "") // remove special chars
     .trim()
-    .replace(/\s+/g, '-')           // spaces → hyphens
-    .replace(/-+/g, '-');           // collapse multiple hyphens
+    .replace(/\s+/g, "-") // spaces → hyphens
+    .replace(/-+/g, "-"); // collapse multiple hyphens
 }
 
 /**
@@ -16,7 +16,7 @@ export function toSlug(title = '') {
  * e.g. toDetailPath('movie', 550, 'Fight Club') -> '/movies/watch/fight-club-550'
  */
 export function toDetailPath(type, id, title) {
-  const section = type === 'tv' ? 'series' : 'movies';
+  const section = type === "tv" ? "series" : "movies";
   const slug = toSlug(title);
   return slug ? `/${section}/watch/${slug}-${id}` : `/${section}/watch/${id}`;
 }
@@ -27,7 +27,7 @@ export function toDetailPath(type, id, title) {
  * - canonical: 'fight-club-550'
  * - bare id: '550'
  */
-export function getIdFromDetailSlug(slug = '') {
+export function getIdFromDetailSlug(slug = "") {
   if (!slug) return null;
   if (/^\d+$/.test(slug)) return Number(slug);
 

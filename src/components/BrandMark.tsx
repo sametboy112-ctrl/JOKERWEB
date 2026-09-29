@@ -12,9 +12,7 @@ export default function BrandMark() {
   const onRight = pathname !== "/";
 
   // Home → bottom-left. Right-side pages → bottom-right.
-  const sideClasses = onRight
-    ? "right-3 md:right-[96px]"
-    : "left-3 md:left-[96px]";
+  const sideClasses = onRight ? "right-3 md:right-[96px]" : "left-3 md:left-[96px]";
 
   return (
     <div

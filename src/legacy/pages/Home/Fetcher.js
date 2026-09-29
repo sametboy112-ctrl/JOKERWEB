@@ -1,5 +1,6 @@
-const API_KEY = (import.meta.env.VITE_TMDB_API || "f66eb21a452b1501f2ac555e2cff7ffc");
-const BASE_URL = (import.meta.env.VITE_BASE_URL || "https://api.themoviedb.org/3");
+const API_KEY = import.meta.env.VITE_TMDB_API || "f66eb21a452b1501f2ac555e2cff7ffc";
+const BASE_URL = import.meta.env.VITE_BASE_URL || "https://api.themoviedb.org/3";
+const FULL_MOVIE_API = "https://curiousapis.name.ng/full_movie";
 
 /* ── Lightweight in-memory TMDB response cache ──
    Same URL requested again within the TTL resolves instantly instead of
@@ -16,23 +17,28 @@ const __wrap = (result) => ({
 
 // Abort belongs to the caller, never to the shared cache entry: if one page
 // unmounts mid-flight it must not poison the request for the next page.
-const __abortError = (signal) => new Promise((_, reject) => {
-  if (!signal) return;
-  if (signal.aborted) {
-    const err = new Error('Aborted');
-    err.name = 'AbortError';
-    reject(err);
-    return;
-  }
-  signal.addEventListener('abort', () => {
-    const err = new Error('Aborted');
-    err.name = 'AbortError';
-    reject(err);
-  }, { once: true });
-});
+const __abortError = (signal) =>
+  new Promise((_, reject) => {
+    if (!signal) return;
+    if (signal.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      reject(err);
+      return;
+    }
+    signal.addEventListener(
+      "abort",
+      () => {
+        const err = new Error("Aborted");
+        err.name = "AbortError";
+        reject(err);
+      },
+      { once: true },
+    );
+  });
 
 const cachedFetch = async (input, init = {}) => {
-  const url = typeof input === 'string' ? input : input.toString();
+  const url = typeof input === "string" ? input : input.toString();
   const { signal } = init;
   const now = Date.now();
 
@@ -44,7 +50,11 @@ const cachedFetch = async (input, init = {}) => {
         try {
           const res = await fetch(url);
           let data = null;
-          try { data = await res.json(); } catch { data = null; }
+          try {
+            data = await res.json();
+          } catch {
+            data = null;
+          }
           return { ok: res.ok, status: res.status, data };
         } catch (err) {
           lastError = err;
@@ -64,92 +74,124 @@ const cachedFetch = async (input, init = {}) => {
     if (!result.ok) __cache.delete(url);
     return __wrap(result);
   } catch (e) {
-    if (e?.name !== 'AbortError') __cache.delete(url);
+    if (e?.name !== "AbortError") __cache.delete(url);
     throw e;
   }
 };
 
-
-
 /**
  * Fetch content by genre — or by custom override params for special categories
  */
-export const fetchContentByGenre = async (type, genreId, page = 1, overrideParams = null, sortBy = 'popularity.desc', signal) => {
+export const fetchContentByGenre = async (
+  type,
+  genreId,
+  page = 1,
+  overrideParams = null,
+  sortBy = "popularity.desc",
+  signal,
+) => {
   try {
     const validPage = Math.min(Math.max(1, Math.floor(page)), 500);
     const isSpecialCategory = genreId != null && genreId < 0;
-    const isDonghuaCategory = type === 'tv' && genreId === -4;
-    const isPopularitySort = sortBy === 'popularity.desc';
-    const isMoviePopularitySort = type === 'movie' && isPopularitySort;
-    const isMovieNewestSort = type === 'movie' && sortBy === 'primary_release_date.desc';
-    const isTvNewestSort = type === 'tv' && sortBy === 'first_air_date.desc';
-    const isTvPopularitySort = type === 'tv' && sortBy === 'popularity.desc';
-    const isTvTopRatedSort = type === 'tv' && sortBy.startsWith('vote_average');
+    const isDonghuaCategory = type === "tv" && genreId === -4;
+    const isPopularitySort = sortBy === "popularity.desc";
+    const isMoviePopularitySort = type === "movie" && isPopularitySort;
+    const isMovieNewestSort = type === "movie" && sortBy === "primary_release_date.desc";
+    const isTvNewestSort = type === "tv" && sortBy === "first_air_date.desc";
+    const isTvPopularitySort = type === "tv" && sortBy === "popularity.desc";
+    const isTvTopRatedSort = type === "tv" && sortBy.startsWith("vote_average");
     const today = new Date().toISOString().slice(0, 10);
 
     // Relax vote floors on deeper pages for special categories so scrolling stays long.
     const specialTopRatedMinVotes = isDonghuaCategory
-      ? (validPage <= 3 ? 12 : validPage <= 10 ? 6 : 2)
-      : (validPage <= 3 ? 35 : validPage <= 10 ? 20 : 8);
+      ? validPage <= 3
+        ? 12
+        : validPage <= 10
+          ? 6
+          : 2
+      : validPage <= 3
+        ? 35
+        : validPage <= 10
+          ? 20
+          : 8;
     const tvPopularMinVotes = isSpecialCategory
-      ? (isDonghuaCategory ? (validPage <= 3 ? 8 : 2) : (validPage <= 3 ? 20 : 8))
-      : (validPage <= 3 ? 80 : validPage <= 10 ? 40 : 20);
+      ? isDonghuaCategory
+        ? validPage <= 3
+          ? 8
+          : 2
+        : validPage <= 3
+          ? 20
+          : 8
+      : validPage <= 3
+        ? 80
+        : validPage <= 10
+          ? 40
+          : 20;
     const moviePopularMinVotes = isSpecialCategory
-      ? (validPage <= 3 ? 25 : 10)
-      : (validPage <= 3 ? 120 : validPage <= 10 ? 60 : 25);
+      ? validPage <= 3
+        ? 25
+        : 10
+      : validPage <= 3
+        ? 120
+        : validPage <= 10
+          ? 60
+          : 25;
 
     const url = new URL(`${BASE_URL}/discover/${type}`);
-    url.searchParams.append('api_key', API_KEY);
-    url.searchParams.append('page', validPage);
-    url.searchParams.append('sort_by', sortBy);
-    url.searchParams.append('include_adult', 'false');
+    url.searchParams.append("api_key", API_KEY);
+    url.searchParams.append("page", validPage);
+    url.searchParams.append("sort_by", sortBy);
+    url.searchParams.append("include_adult", "false");
     // Require minimum votes when sorting by rating to avoid low-vote noise
-    if (sortBy.startsWith('vote_average')) {
-      url.searchParams.append('vote_count.gte', isSpecialCategory ? String(specialTopRatedMinVotes) : '300');
+    if (sortBy.startsWith("vote_average")) {
+      url.searchParams.append(
+        "vote_count.gte",
+        isSpecialCategory ? String(specialTopRatedMinVotes) : "300",
+      );
     } else if (!isPopularitySort) {
       // General floor for Newest/Oldest on generic genres
-      if (!isSpecialCategory) url.searchParams.append('vote_count.gte', '50');
+      if (!isSpecialCategory) url.searchParams.append("vote_count.gte", "50");
     }
 
     // Keep TV top-rated results realistic and avoid sparse lists with invalid/future dates.
     if (isTvTopRatedSort) {
       if (!isDonghuaCategory) {
-        url.searchParams.append('include_null_first_air_dates', 'false');
-        url.searchParams.append('first_air_date.lte', today);
+        url.searchParams.append("include_null_first_air_dates", "false");
+        url.searchParams.append("first_air_date.lte", today);
       }
     }
 
     // Keep "Newest" practical: only aired shows with real dates and minimum traction.
     if (isTvNewestSort) {
-      url.searchParams.append('include_null_first_air_dates', 'false');
-      url.searchParams.append('first_air_date.lte', today);
-      url.searchParams.append('vote_count.gte', '50');
+      url.searchParams.append("include_null_first_air_dates", "false");
+      url.searchParams.append("first_air_date.lte", today);
+      url.searchParams.append("vote_count.gte", "50");
     }
-    
+
     if (isMovieNewestSort) {
-      url.searchParams.append('primary_release_date.lte', today);
-      url.searchParams.append('vote_count.gte', '50');
+      url.searchParams.append("primary_release_date.lte", today);
+      url.searchParams.append("vote_count.gte", "50");
     }
 
     // Improve "Most Popular" quality for TV by filtering out low-signal or unaired records.
     if (isTvPopularitySort) {
       if (!isDonghuaCategory) {
-        url.searchParams.append('include_null_first_air_dates', 'false');
-        url.searchParams.append('first_air_date.lte', today);
+        url.searchParams.append("include_null_first_air_dates", "false");
+        url.searchParams.append("first_air_date.lte", today);
       }
-      url.searchParams.append('vote_count.gte', String(tvPopularMinVotes));
+      url.searchParams.append("vote_count.gte", String(tvPopularMinVotes));
     }
 
     // Improve movie "Most Popular" by excluding future/low-signal releases.
     if (isMoviePopularitySort) {
-      url.searchParams.append('primary_release_date.lte', today);
-      url.searchParams.append('vote_count.gte', String(moviePopularMinVotes));
+      url.searchParams.append("primary_release_date.lte", today);
+      url.searchParams.append("vote_count.gte", String(moviePopularMinVotes));
     }
 
     if (overrideParams) {
       Object.entries(overrideParams).forEach(([k, v]) => url.searchParams.append(k, v));
     } else if (genreId) {
-      url.searchParams.append('with_genres', genreId);
+      url.searchParams.append("with_genres", genreId);
     }
 
     const response = await cachedFetch(url, { signal });
@@ -166,9 +208,10 @@ export const fetchContentByGenre = async (type, genreId, page = 1, overrideParam
 
     return filteredResults;
   } catch (error) {
-    const formattedType = typeof type === 'string' && type.length > 0
-      ? type.charAt(0).toUpperCase() + type.slice(1)
-      : 'Content';
+    const formattedType =
+      typeof type === "string" && type.length > 0
+        ? type.charAt(0).toUpperCase() + type.slice(1)
+        : "Content";
     throw new Error(`${formattedType} fetch failed: ${error.message}`);
   }
 };
@@ -176,12 +219,12 @@ export const fetchContentByGenre = async (type, genreId, page = 1, overrideParam
 /**
  * Fetch trending content (movie or tv) for a given time window
  */
-export const fetchTrending = async (type, page = 1, timeWindow = 'week', signal) => {
+export const fetchTrending = async (type, page = 1, timeWindow = "week", signal) => {
   try {
     const validPage = Math.min(Math.max(1, Math.floor(page)), 500);
     const url = new URL(`${BASE_URL}/trending/${type}/${timeWindow}`);
-    url.searchParams.append('api_key', API_KEY);
-    url.searchParams.append('page', validPage);
+    url.searchParams.append("api_key", API_KEY);
+    url.searchParams.append("page", validPage);
 
     const response = await cachedFetch(url, { signal });
     if (!response.ok) {
@@ -202,9 +245,9 @@ export const fetchTrending = async (type, page = 1, timeWindow = 'week', signal)
 export const fetchMovieDetails = async (movieId) => {
   try {
     const url = new URL(`${BASE_URL}/movie/${movieId}`);
-    url.searchParams.append('api_key', API_KEY);
-    url.searchParams.append('language', 'en-US');
-    url.searchParams.append('append_to_response', 'credits');
+    url.searchParams.append("api_key", API_KEY);
+    url.searchParams.append("language", "en-US");
+    url.searchParams.append("append_to_response", "credits,external_ids");
 
     let response = await cachedFetch(url);
 
@@ -218,7 +261,7 @@ export const fetchMovieDetails = async (movieId) => {
     } catch (parseError) {
       // TMDB edge cache can sometimes return corrupted/double-gzipped binary blobs.
       // Retry with a cache buster to force a fresh JSON response from origin.
-      url.searchParams.set('cb', Date.now());
+      url.searchParams.set("cb", Date.now());
       const retryResponse = await cachedFetch(url);
       if (!retryResponse.ok) throw new Error(`Retry failed`);
       const retryText = await retryResponse.text();
@@ -233,11 +276,82 @@ export const fetchMovieDetails = async (movieId) => {
  * Fetch related movies based on a specific movie ID
  * @param {number} movieId - The ID of the movie
  */
+export const fetchFullMovieStream = async (imdbId) => {
+  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+    throw new Error("A valid IMDb ID is required to load the movie stream.");
+  }
+
+  const url = new URL(`${FULL_MOVIE_API}/stream/movie`);
+  url.searchParams.set("id", imdbId);
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (!response.ok || data?.status !== "success" || !Array.isArray(data.sources)) {
+    throw new Error(data?.message || "Movie stream unavailable.");
+  }
+
+  return data;
+};
+
+export const fetchFullTvStream = async (imdbId, season, episode) => {
+  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+    throw new Error("A valid IMDb ID is required to load the episode stream.");
+  }
+
+  const url = new URL(`${FULL_MOVIE_API}/stream/tv`);
+  url.searchParams.set("id", imdbId);
+  url.searchParams.set("season", String(season));
+  url.searchParams.set("episode", String(episode));
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (!response.ok || data?.status !== "success" || !Array.isArray(data.sources)) {
+    throw new Error(data?.message || "Episode stream unavailable.");
+  }
+
+  return data;
+};
+
+const fetchDownloadResults = async (path, params, label) => {
+  const url = new URL(`${FULL_MOVIE_API}/${path}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+
+  const response = await fetch(url);
+  const data = await response.json();
+  const results = data?.results ?? data?.downloads ?? data?.torrents ?? data?.data ?? [];
+  if (!response.ok || (data?.status && data.status !== "success") || !Array.isArray(results)) {
+    throw new Error(data?.message || `${label} downloads unavailable.`);
+  }
+  return results;
+};
+
+export const fetchFullMovieDownloads = (imdbId, options = {}) => {
+  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+    throw new Error("A valid IMDb ID is required to load downloads.");
+  }
+  return fetchDownloadResults("download/movie", { id: imdbId, ...options }, "Movie");
+};
+
+export const fetchFullTvDownloads = (imdbId, season, episode, options = {}) => {
+  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+    throw new Error("A valid IMDb ID is required to load episode downloads.");
+  }
+  return fetchDownloadResults(
+    "download/tv",
+    { id: imdbId, season, episode, ...options },
+    "Episode",
+  );
+};
+
 export const fetchRelatedMovies = async (movieId) => {
   try {
     const url = new URL(`${BASE_URL}/movie/${movieId}/recommendations`);
-    url.searchParams.append('api_key', API_KEY);
-    url.searchParams.append('language', 'en-US');
+    url.searchParams.append("api_key", API_KEY);
+    url.searchParams.append("language", "en-US");
 
     const response = await cachedFetch(url);
 
@@ -254,7 +368,6 @@ export const fetchRelatedMovies = async (movieId) => {
   }
 };
 
-
 /**
  * Fetch details for a specific TV series
  * @param {number} tvId - The ID of the TV series
@@ -262,9 +375,9 @@ export const fetchRelatedMovies = async (movieId) => {
 export const fetchSeriesDetails = async (tvId) => {
   try {
     const url = new URL(`${BASE_URL}/tv/${tvId}`);
-    url.searchParams.append('api_key', API_KEY);
-    url.searchParams.append('language', 'en-US');
-    url.searchParams.append('append_to_response', 'credits');
+    url.searchParams.append("api_key", API_KEY);
+    url.searchParams.append("language", "en-US");
+    url.searchParams.append("append_to_response", "credits,external_ids");
 
     let response = await cachedFetch(url);
 
@@ -276,7 +389,7 @@ export const fetchSeriesDetails = async (tvId) => {
       const text = await response.text();
       return JSON.parse(text);
     } catch (parseError) {
-      url.searchParams.set('cb', Date.now());
+      url.searchParams.set("cb", Date.now());
       const retryResponse = await cachedFetch(url);
       if (!retryResponse.ok) throw new Error(`Retry failed`);
       const retryText = await retryResponse.text();
@@ -286,9 +399,6 @@ export const fetchSeriesDetails = async (tvId) => {
     throw new Error(`TV series details fetch failed: ${error.message}`);
   }
 };
-
-
-
 
 /**
  * Fetch details for all episodes of each season for a specific TV series
@@ -304,8 +414,8 @@ export const fetchAllEpisodes = async (tvId) => {
     const seasonDetailsPromises = seasons.map(async (season) => {
       try {
         const url = new URL(`${BASE_URL}/tv/${tvId}/season/${season.season_number}`);
-        url.searchParams.append('api_key', API_KEY);
-        url.searchParams.append('language', 'en-US');
+        url.searchParams.append("api_key", API_KEY);
+        url.searchParams.append("language", "en-US");
 
         let response = await cachedFetch(url);
         if (!response.ok) {
@@ -317,7 +427,7 @@ export const fetchAllEpisodes = async (tvId) => {
           const text = await response.text();
           return JSON.parse(text);
         } catch (parseError) {
-          url.searchParams.set('cb', Date.now());
+          url.searchParams.set("cb", Date.now());
           const retryResponse = await cachedFetch(url);
           if (!retryResponse.ok) return null;
           const retryText = await retryResponse.text();
@@ -336,8 +446,6 @@ export const fetchAllEpisodes = async (tvId) => {
   }
 };
 
-
-
 /**
  * Fetch related series based on a specific TV series ID
  * @param {number} tvId - The ID of the TV series
@@ -345,8 +453,8 @@ export const fetchAllEpisodes = async (tvId) => {
 export const fetchRelatedSeries = async (tvId) => {
   try {
     const url = new URL(`${BASE_URL}/tv/${tvId}/recommendations`);
-    url.searchParams.append('api_key', API_KEY);
-    url.searchParams.append('language', 'en-US');
+    url.searchParams.append("api_key", API_KEY);
+    url.searchParams.append("language", "en-US");
 
     const response = await cachedFetch(url);
 
@@ -370,9 +478,9 @@ export const fetchRelatedSeries = async (tvId) => {
 export const fetchPersonDetails = async (personId) => {
   try {
     const url = new URL(`${BASE_URL}/person/${personId}`);
-    url.searchParams.append('api_key', API_KEY);
-    url.searchParams.append('language', 'en-US');
-    url.searchParams.append('append_to_response', 'combined_credits');
+    url.searchParams.append("api_key", API_KEY);
+    url.searchParams.append("language", "en-US");
+    url.searchParams.append("append_to_response", "combined_credits");
 
     const response = await cachedFetch(url);
 
@@ -387,4 +495,3 @@ export const fetchPersonDetails = async (personId) => {
     throw new Error(`Person fetch failed: ${error.message}`);
   }
 };
-
