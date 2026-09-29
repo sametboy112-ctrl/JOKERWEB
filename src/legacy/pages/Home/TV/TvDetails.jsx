@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useState, useCallback, memo, useRef 
 import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchSeriesDetails, fetchAllEpisodes, fetchRelatedSeries } from "../Fetcher";
+import { fetchSeriesDetails, fetchImdbDetails, fetchAllEpisodes, fetchRelatedSeries } from "../Fetcher";
 import { getIdFromDetailSlug, toDetailPath } from "../urlUtils";
 import { saveToContinueWatching } from "../../../utils/continueWatching";
 import { trackWatchRequest } from "../../../utils/analytics";
@@ -30,6 +30,8 @@ const MemoizedVideoPlayer = memo(VideoPlayer);
 const BACKDROP = "https://image.tmdb.org/t/p/original";
 const POSTER = "https://image.tmdb.org/t/p/w342";
 const STILL = "https://image.tmdb.org/t/p/w300";
+const imageUrl = (value, fallbackBase) =>
+  value ? (String(value).startsWith("http") ? value : `${fallbackBase}${value}`) : null;
 
 const MetaBadge = ({ icon: Icon, children }) => (
   <span className="flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.12] text-gray-200 text-xs font-semibold px-3 py-1.5 rounded-full">
@@ -120,10 +122,11 @@ const TvDetails = ({ tvId: tvIdProp }) => {
     setError(null);
     setRetrying(true);
     try {
+      const isImdbRoute = /^tt\\d+$/i.test(String(tvId));
       const [seriesData, seasonsData, relatedData] = await Promise.all([
-        fetchSeriesDetails(tvId),
-        fetchAllEpisodes(tvId),
-        fetchRelatedSeries(tvId),
+        isImdbRoute ? fetchImdbDetails(tvId) : fetchSeriesDetails(tvId),
+        isImdbRoute ? Promise.resolve([]) : fetchAllEpisodes(tvId),
+        isImdbRoute ? Promise.resolve([]) : fetchRelatedSeries(tvId),
       ]);
       setTv(seriesData);
       setRelated(

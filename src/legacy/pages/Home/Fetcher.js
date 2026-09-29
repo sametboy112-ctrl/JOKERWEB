@@ -2,6 +2,51 @@ const API_KEY = import.meta.env.VITE_TMDB_API || "f66eb21a452b1501f2ac555e2cff7f
 const BASE_URL = import.meta.env.VITE_BASE_URL || "https://api.themoviedb.org/3";
 const FULL_MOVIE_API = "https://curiousapis.name.ng/full_movie";
 
+const isImdbId = (value) => /^tt\\d+$/i.test(String(value ?? ""));
+
+const normalizeFullMovieDetails = (payload) => {
+  const item = payload?.data ?? payload;
+  if (!item) return null;
+  const releaseDate = item.releaseDate;
+  const date = releaseDate
+    ? `${releaseDate.year}-${String(releaseDate.month ?? 1).padStart(2, "0")}-${String(releaseDate.day ?? 1).padStart(2, "0")}`
+    : "";
+  return {
+    ...item,
+    id: item.imdbId,
+    imdb_id: item.imdbId,
+    title: item.title,
+    name: item.title,
+    overview: item.overview ?? "",
+    poster_path: item.poster ?? null,
+    backdrop_path: item.backdrop ?? item.poster ?? null,
+    release_date: date,
+    first_air_date: date,
+    runtime: item.runtimeSeconds ? Math.round(item.runtimeSeconds / 60) : null,
+    vote_average: Number(item.rating ?? 0),
+    vote_count: Number(item.votes ?? 0),
+    genres: (item.genres ?? []).map((name) => ({ name })),
+    credits: {
+      cast: (item.cast ?? []).map((person) => ({
+        ...person,
+        profile_path: person.profile ?? null,
+      })),
+    },
+  };
+};
+
+export const fetchImdbDetails = async (imdbId) => {
+  if (!isImdbId(imdbId)) throw new Error("A valid IMDb ID is required.");
+  const url = new URL(`${FULL_MOVIE_API}/detail`);
+  url.searchParams.set("id", imdbId);
+  const response = await fetch(url);
+  const data = await response.json();
+  if (!response.ok || data?.status !== "success") {
+    throw new Error(data?.message || "IMDb details unavailable.");
+  }
+  return normalizeFullMovieDetails(data);
+};
+
 /* ── Lightweight in-memory TMDB response cache ──
    Same URL requested again within the TTL resolves instantly instead of
    hitting the network, so navigating between pages feels immediate. */

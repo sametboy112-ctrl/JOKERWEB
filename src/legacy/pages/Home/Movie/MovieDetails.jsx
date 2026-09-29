@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, memo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import PropTypes from "prop-types";
-import { fetchMovieDetails, fetchRelatedMovies } from "../Fetcher";
+import { fetchMovieDetails, fetchImdbDetails, fetchRelatedMovies } from "../Fetcher";
 import { getIdFromDetailSlug, toDetailPath } from "../urlUtils";
 import { saveToContinueWatching } from "../../../utils/continueWatching";
 import { trackWatchRequest } from "../../../utils/analytics";
@@ -19,6 +19,8 @@ const MemoizedVideoPlayer = memo(VideoPlayer);
 
 const BACKDROP = "https://image.tmdb.org/t/p/original";
 const POSTER = "https://image.tmdb.org/t/p/w500";
+const imageUrl = (value, fallbackBase) =>
+  value ? (String(value).startsWith("http") ? value : `${fallbackBase}${value}`) : null;
 
 const MovieDetails = ({ movieId: movieIdProp }) => {
   const { slug } = useParams();
@@ -70,9 +72,10 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
     setError(null);
     setRetrying(true);
     try {
+      const isImdbRoute = /^tt\\d+$/i.test(String(movieId));
       const [data, relatedData] = await Promise.all([
-        fetchMovieDetails(movieId),
-        fetchRelatedMovies(movieId),
+        isImdbRoute ? fetchImdbDetails(movieId) : fetchMovieDetails(movieId),
+        isImdbRoute ? Promise.resolve([]) : fetchRelatedMovies(movieId),
       ]);
       setMovie(data);
       setRelated(
@@ -235,9 +238,9 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
         }
         image={
           movie.backdrop_path
-            ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
+            ? imageUrl(movie.backdrop_path, "https://image.tmdb.org/t/p/w1280")
             : movie.poster_path
-              ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
+              ? imageUrl(movie.poster_path, "https://image.tmdb.org/t/p/w780")
               : undefined
         }
         type="video.movie"
@@ -247,7 +250,7 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
           name: movie.title,
           description: movie.overview,
           image: movie.poster_path
-            ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
+            ? imageUrl(movie.poster_path, "https://image.tmdb.org/t/p/w780")
             : undefined,
           dateCreated: movie.release_date,
           ...(movie.vote_average > 0 && {
@@ -268,7 +271,7 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
         <div className="absolute inset-0 z-0 select-none overflow-hidden">
           {movie.backdrop_path ? (
             <img
-              src={`${BACKDROP}${movie.backdrop_path}`}
+              src={imageUrl(movie.backdrop_path, BACKDROP)}
               alt=""
               className="w-full h-full object-cover object-top"
               style={{
@@ -301,7 +304,7 @@ const MovieDetails = ({ movieId: movieIdProp }) => {
           {movie.poster_path && (
             <div className="hidden md:block shrink-0 z-10">
               <img
-                src={`${POSTER}${movie.poster_path}`}
+                src={imageUrl(movie.poster_path, POSTER)}
                 alt={movie.title}
                 className="w-48 lg:w-64 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] ring-1 ring-white/10 group-hover:scale-105 transition-transform duration-700"
               />
