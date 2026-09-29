@@ -312,6 +312,41 @@ export const fetchFullTvStream = async (imdbId, season, episode) => {
   return data;
 };
 
+const fetchDownloadResults = async (path, params, label) => {
+  const url = new URL(`${FULL_MOVIE_API}/${path}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+
+  const response = await fetch(url);
+  const data = await response.json();
+  const results = data?.results ?? data?.downloads ?? data?.torrents ?? data?.data ?? [];
+  if (!response.ok || (data?.status && data.status !== "success") || !Array.isArray(results)) {
+    throw new Error(data?.message || `${label} downloads unavailable.`);
+  }
+  return results;
+};
+
+export const fetchFullMovieDownloads = (imdbId, options = {}) => {
+  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+    throw new Error("A valid IMDb ID is required to load downloads.");
+  }
+  return fetchDownloadResults("download/movie", { id: imdbId, ...options }, "Movie");
+};
+
+export const fetchFullTvDownloads = (imdbId, season, episode, options = {}) => {
+  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+    throw new Error("A valid IMDb ID is required to load episode downloads.");
+  }
+  return fetchDownloadResults(
+    "download/tv",
+    { id: imdbId, season, episode, ...options },
+    "Episode",
+  );
+};
+
 export const fetchRelatedMovies = async (movieId) => {
   try {
     const url = new URL(`${BASE_URL}/movie/${movieId}/recommendations`);
