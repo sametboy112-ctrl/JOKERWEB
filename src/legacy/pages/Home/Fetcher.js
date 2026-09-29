@@ -277,7 +277,7 @@ export const fetchMovieDetails = async (movieId) => {
  * @param {number} movieId - The ID of the movie
  */
 export const fetchFullMovieStream = async (imdbId) => {
-  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+  if (!imdbId || !/^tt\d+$/i.test(String(imdbId))) {
     throw new Error("A valid IMDb ID is required to load the movie stream.");
   }
 
@@ -294,7 +294,7 @@ export const fetchFullMovieStream = async (imdbId) => {
 };
 
 export const fetchFullTvStream = async (imdbId, season, episode) => {
-  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+  if (!imdbId || !/^tt\d+$/i.test(String(imdbId))) {
     throw new Error("A valid IMDb ID is required to load the episode stream.");
   }
 
@@ -330,14 +330,14 @@ const fetchDownloadResults = async (path, params, label) => {
 };
 
 export const fetchFullMovieDownloads = (imdbId, options = {}) => {
-  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+  if (!imdbId || !/^tt\d+$/i.test(String(imdbId))) {
     throw new Error("A valid IMDb ID is required to load downloads.");
   }
   return fetchDownloadResults("download/movie", { id: imdbId, ...options }, "Movie");
 };
 
 export const fetchFullTvDownloads = (imdbId, season, episode, options = {}) => {
-  if (!imdbId || !/^tt\\d+$/i.test(String(imdbId))) {
+  if (!imdbId || !/^tt\d+$/i.test(String(imdbId))) {
     throw new Error("A valid IMDb ID is required to load episode downloads.");
   }
   return fetchDownloadResults(
