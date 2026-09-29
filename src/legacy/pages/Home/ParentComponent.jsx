@@ -171,8 +171,8 @@ function ParentComponent() {
                 <span>·</span>
                 <span>
                   Data by{' '}
-                  <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white underline underline-offset-2 transition-colors">
-                    TMDB
+                  <a href="https://www.imdb.com" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white underline underline-offset-2 transition-colors">
+                    IMDb
                   </a>
                 </span>
               </div>
